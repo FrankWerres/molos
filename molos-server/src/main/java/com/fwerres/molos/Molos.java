@@ -40,7 +40,7 @@ public class Molos {
 	@Path("/.wellknown/openid-configuration")
     @Produces({ "application/json" })
     public Response openIdConfiguration() {
-        return Response.ok().entity(jsonb.toJson(new OpenIdConfig(uriInfo.getBaseUri().toString()))).build();
+        return Response.ok().entity(new OpenIdConfig(uriInfo.getBaseUri().toString())).build();
     }
 	
 	@POST
@@ -60,7 +60,7 @@ public class Molos {
 		if (clientConfig != null && clientConfig.getClientSecret().equals(clientSecret) && clientConfig.getScopes().contains(values.get("scope"))) {
 			Token token = new Token();
 			state.registerToken(clientId, token);
-			return Response.ok().entity(jsonb.toJson(token)).build();
+			return Response.ok().entity(token).build();
 		} else {
 			return Response.serverError().build();
 		}
@@ -114,7 +114,7 @@ public class Molos {
 
 		tokenIntrospection.setActive(state.isRegisteredToken(clientId, token));
 			
-		return Response.ok().entity(jsonb.toJson(tokenIntrospection)).build();
+		return Response.ok().entity(tokenIntrospection).build();
 	}
 
 	// mock configuration stuff ...
@@ -126,21 +126,20 @@ public class Molos {
 		MolosResult result = new MolosResult();
 		result.setSuccess(true);
 		
-		return Response.ok().entity(jsonb.toJson(result)).build();
+		return Response.ok().entity(result).build();
 	}
 	
 	@POST
 	@Path("/mock-setup/client")
 	@Consumes({ "application/json" })
 	@Produces({ "application/json" })
-	public Response mockSetupClient(String request) {
+	public Response mockSetupClient(ClientConfig cc) {
 		MolosResult result = new MolosResult();
 
-		ClientConfig cc = jsonb.fromJson(request, ClientConfig.class);
 		System.out.println("Registering #" + cc.getClientId());
 		
 		result.setSuccess(state.registerClient(cc, result.getMessages()));
 		
-		return Response.ok().entity(jsonb.toJson(result)).build();
+		return Response.ok().entity(result).build();
 	}
 }

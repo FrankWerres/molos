@@ -7,8 +7,6 @@ import com.fwerres.molos.config.ClientConfig;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
 
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.spi.JsonbProvider;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
@@ -17,7 +15,6 @@ import jakarta.ws.rs.core.Response;
 public class MolosSetup {
 
 	private final String url;
-	private Jsonb jsonb = JsonbProvider.provider().create().build();
 	
 	private MolosSetup(String url) {
 		this.url = url;
@@ -32,11 +29,7 @@ public class MolosSetup {
 		
 		Response response = client.target(url + "/mock-setup/clear").request().post(null);
 		
-		String resultString = response.readEntity(String.class);
-		
-		JsonbProvider provider = JsonbProvider.provider();
-		MolosResult result = provider.create().build().fromJson(resultString, MolosResult.class);
-		
+		MolosResult result = response.readEntity(MolosResult.class);
 		return result;
 	}
 	
@@ -45,10 +38,7 @@ public class MolosSetup {
 		
 		Response response = client.target(url + OpenIdConfig.PATH_CONFIG_ENDPOINT ).request().get();
 		
-		String resultString = response.readEntity(String.class);
-		
-		JsonbProvider provider = JsonbProvider.provider();
-		OpenIdConfig result = provider.create().build().fromJson(resultString, OpenIdConfig.class);
+		OpenIdConfig result = response.readEntity(OpenIdConfig.class);
 		
 		return result;
 	}
@@ -60,12 +50,9 @@ public class MolosSetup {
 	public MolosResult addClient(ClientConfig clientConfig) {
 		Client client = ClientBuilder.newClient();
 		
-		String clientConfigString = jsonb.toJson(clientConfig);
-		Response response = client.target(url + "/mock-setup/client").request().post(Entity.json(clientConfigString));
+		Response response = client.target(url + "/mock-setup/client").request().post(Entity.json(clientConfig));
 		
-		String resultString = response.readEntity(String.class);
-		
-		MolosResult result = jsonb.fromJson(resultString, MolosResult.class);
+		MolosResult result = response.readEntity(MolosResult.class);
 		
 		return result;
 	}

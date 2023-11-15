@@ -7,12 +7,11 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.cxf.endpoint.Server;
-import org.apache.cxf.jaxrs.provider.jsrjsonb.JsrJsonbProvider;
-import org.eclipse.yasson.JsonBindingProvider;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 import com.fwerres.molos.Molos;
 import com.fwerres.molos.config.ClientConfig;
 import com.fwerres.molos.config.MolosResult;
@@ -29,7 +28,7 @@ public class MolosSetupTest {
 	@BeforeAll
 	public static void setUp() throws Exception {
 		if (theServer == null) {
-			theServer = jaxrs.createLocalCXFServer("/oidcMock", Molos.class, new Object[] { new JsonBindingProvider() } , new Object[] { });
+			theServer = jaxrs.createLocalCXFServer("/oidcMock", Molos.class, new Object[] { new JacksonJsonProvider() } , new Object[] { });
 			wsUrl = jaxrs.getActualUrl(theServer);
 			System.out.println("Started server on " + wsUrl);
 		}
