@@ -4,6 +4,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.fwerres.molos.config.ClientConfig;
@@ -53,8 +54,8 @@ public class Molos {
 		
 		System.err.println("Request: " + values);
 		
-		String clientId = values.get("_clientId");
-		String clientSecret = values.get("_clientSecret");
+		String clientId = values.get("client_id");
+		String clientSecret = values.get("client_secret");
 		
 		ClientConfig clientConfig = state.getClient(clientId);
 		if (clientConfig != null && clientConfig.getClientSecret().equals(clientSecret) && clientConfig.getScopes().contains(values.get("scope"))) {
@@ -85,15 +86,18 @@ public class Molos {
 			values.put(split[0],  split[1]);
 		}
 		
-		String authorization64 = headers.getRequestHeader(HttpHeaders.AUTHORIZATION).get(0).substring("Basic ".length());
-		String authorization = new String(Base64.getDecoder().decode(authorization64));
-		values.put("_authorization", authorization);
-
-		String clientId = authorization.substring(0, authorization.indexOf(":"));
-		String clientSecret = authorization.substring(authorization.indexOf(":") + 1);
-
-		values.put("_clientId", clientId);
-		values.put("_clientSecret", clientSecret);
+		List<String> authHeaders = headers.getRequestHeader(HttpHeaders.AUTHORIZATION);
+		if (authHeaders != null && !authHeaders.isEmpty()) {
+			String authorization64 = authHeaders.get(0).substring("Basic ".length());
+			String authorization = new String(Base64.getDecoder().decode(authorization64));
+			values.put("_authorization", authorization);
+			
+			String clientId = authorization.substring(0, authorization.indexOf(":"));
+			String clientSecret = authorization.substring(authorization.indexOf(":") + 1);
+			
+			values.put("client_id", clientId);
+			values.put("client_secret", clientSecret);
+		}
 		
 		return values;
 	}
@@ -110,7 +114,7 @@ public class Molos {
 		
 		TokenIntrospection tokenIntrospection = new TokenIntrospection();
 		
-		String clientId = values.get("_clientId");
+		String clientId = values.get("client_id");
 
 		tokenIntrospection.setActive(state.isRegisteredToken(clientId, token));
 			
