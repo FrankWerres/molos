@@ -66,11 +66,6 @@ public class MolosConfigTest {
 		
 		assertTrue(clients != null && clients.isEmpty());
 		
-		ClientConfig client = new ClientConfig();
-		client.setClientId("arbitraryClientId");
-		client.setClientSecret("arbitraryClientSecret");
-		client.setScopes(new HashSet<>(Arrays.asList("openid")));
-		
 		result = config.client("arbitraryClientId").clientSecret("arbitraryClientSecret").scope("openid").add();
 		
 		assertTrue(result.isSuccess());
