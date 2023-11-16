@@ -18,7 +18,7 @@ import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
 import com.fwerres.testsupport.JaxRSHelper;
 
-public class MolosSetupTest {
+public class MolosConfigTest {
 	private static JaxRSHelper jaxrs = new JaxRSHelper();
 	
 	private static String wsUrl;
@@ -44,7 +44,7 @@ public class MolosSetupTest {
 
 	@Test
 	public void testConfig() {
-		MolosSetup setup = MolosSetup.createTestSetup(wsUrl);
+		MolosConfig setup = MolosConfig.getConfigurator(wsUrl);
 		
 		OpenIdConfig config = setup.getOIDCConfig();
 		
@@ -55,14 +55,14 @@ public class MolosSetupTest {
 	}
 
 	@Test
-	public void test() {
-		MolosSetup setup = MolosSetup.createTestSetup(wsUrl);
+	public void testClient() {
+		MolosConfig config = MolosConfig.getConfigurator(wsUrl);
 		
-		MolosResult result = setup.clear();
+		MolosResult result = config.clear();
 		
 		assertTrue(result.isSuccess());
 		
-		List<ClientConfig> clients = setup.getClients();
+		List<ClientConfig> clients = config.getClients();
 		
 		assertTrue(clients != null && clients.isEmpty());
 		
@@ -71,7 +71,7 @@ public class MolosSetupTest {
 		client.setClientSecret("arbitraryClientSecret");
 		client.setScopes(new HashSet<>(Arrays.asList("openid")));
 		
-		result = setup.addClient(client);
+		result = config.client("arbitraryClientId").clientSecret("arbitraryClientSecret").scope("openid").add();
 		
 		assertTrue(result.isSuccess());
 	}

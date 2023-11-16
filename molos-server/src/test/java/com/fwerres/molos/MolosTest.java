@@ -6,17 +6,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.HashSet;
 
 import org.apache.cxf.endpoint.Server;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
-import com.fwerres.molos.client.MolosSetup;
-import com.fwerres.molos.config.ClientConfig;
+import com.fwerres.molos.client.MolosConfig;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.testsupport.JaxRSHelper;
 import com.nimbusds.jwt.JWT;
@@ -48,25 +46,21 @@ public class MolosTest {
 	
 	private static final String OIDC_TOKEN_INTROSPECT_URL = "/protocol/openid-connect/token/introspect";
 
-	private JaxRSHelper jaxrs = new JaxRSHelper();
+	private static JaxRSHelper jaxrs = new JaxRSHelper();
 	
 	private static String wsUrl;
 
 	private static Server theServer;
 	
-	@BeforeEach
-	public void setUp() throws Exception {
+	@BeforeAll
+	public static void setUp() throws Exception {
 		if (theServer == null) {
 			theServer = jaxrs.createLocalCXFServer("/oidcMock", Molos.class, new Object[] { new JacksonJsonProvider() }, new Object[] { });
 			wsUrl = jaxrs.getActualUrl(theServer);
 			System.out.println("Started server on " + wsUrl);
 			
-			MolosSetup setup = MolosSetup.createTestSetup(wsUrl);
-			ClientConfig cc = new ClientConfig();
-			cc.setClientId(OIDC_CLIENT_ID);
-			cc.setClientSecret(OIDC_CLIENT_SECRET);
-			cc.setScopes(new HashSet<>(Arrays.asList("openid")));
-			MolosResult result = setup.addClient(cc);
+			MolosConfig config = MolosConfig.getConfigurator(wsUrl);
+			MolosResult result = config.client(OIDC_CLIENT_ID).clientSecret(OIDC_CLIENT_SECRET).scope("openid").add();
 			for (String msg : result.getMessages()) {
 				System.err.println(msg);
 			}
@@ -92,7 +86,7 @@ public class MolosTest {
 //	}
 	
 	@Test
-	public void requestVerifyToken() throws Exception {
+	public void testRequestVerifyToken() throws Exception {
 		ClientID clientID = new ClientID(OIDC_CLIENT_ID);
 
 		AuthorizationGrant passwordGrant = new ClientCredentialsGrant();
