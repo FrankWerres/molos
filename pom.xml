@@ -48,6 +48,22 @@
 				<scope>test</scope>
 			</dependency>
 
+			<!-- Jakarta JSON Processing -->
+			<!--
+			https://mvnrepository.com/artifact/jakarta.json/jakarta.json-api -->
+			<dependency>
+				<groupId>jakarta.json</groupId>
+				<artifactId>jakarta.json-api</artifactId>
+				<version>2.1.3</version>
+			</dependency>
+			<!-- Runtime for this -->
+			<!-- https://mvnrepository.com/artifact/org.eclipse.parsson/parsson -->
+			<dependency>
+				<groupId>org.eclipse.parsson</groupId>
+				<artifactId>parsson</artifactId>
+				<version>1.1.5</version>
+			</dependency>
+
 			<!-- Jakarta RESTful Web Services -->
 			<dependency>
 				<groupId>jakarta.ws.rs</groupId>
@@ -108,10 +124,18 @@
 				<version>${apache.cxf.version}</version>
 			</dependency>
 
+			<!-- https://mvnrepository.com/artifact/com.nimbusds/oauth2-oidc-sdk -->
 			<dependency>
 				<groupId>com.nimbusds</groupId>
 				<artifactId>oauth2-oidc-sdk</artifactId>
 				<version>11.6</version>
+				<scope>runtime</scope>
+			</dependency>
+			<!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
+			<dependency>
+				<groupId>com.nimbusds</groupId>
+				<artifactId>nimbus-jose-jwt</artifactId>
+				<version>9.37.1</version>
 			</dependency>
 
 			<!--

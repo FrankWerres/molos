@@ -1,11 +1,14 @@
 package com.fwerres.molos;
 
+import java.io.StringReader;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.text.ParseException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.fwerres.molos.config.ClientConfig;
 import com.fwerres.molos.config.MolosResult;
@@ -13,9 +16,18 @@ import com.fwerres.molos.config.OpenIdConfig;
 import com.fwerres.molos.data.Token;
 import com.fwerres.molos.data.TokenIntrospection;
 import com.fwerres.molos.setup.State;
+import com.nimbusds.jose.Payload;
+import com.nimbusds.jwt.SignedJWT;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
+import jakarta.json.JsonValue.ValueType;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.spi.JsonbProvider;
+import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParserFactory;
+import jakarta.json.stream.JsonParser.Event;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -29,6 +41,10 @@ import jakarta.ws.rs.core.UriInfo;
 
 public class Molos {
 	
+	private static final String SIGNED_JWT_WITH_CLIENT_SECRET = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+
+	private static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
+
 	@Context
 	private UriInfo uriInfo;
 	
@@ -54,6 +70,25 @@ public class Molos {
 		
 		System.err.println("Request: " + values);
 		
+		if (values.containsKey(CLIENT_ASSERTION_TYPE) && values.get(CLIENT_ASSERTION_TYPE).equals(SIGNED_JWT_WITH_CLIENT_SECRET)) {
+			String clientId = "";
+			try {
+				SignedJWT jwt = SignedJWT.parse(values.get("client_assertion"));
+				String assertion = jwt.getPayload().toString();
+				System.err.println("Assertion: " + assertion);
+				Map<String, Object> tokenMap = parseJson(assertion);
+				clientId = (String) tokenMap.get("iss");
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			Token token = new Token();
+			state.registerToken(clientId, token);
+			return Response.ok().entity(token).build();
+			
+		}
+		
 		String clientId = values.get("client_id");
 		String clientSecret = values.get("client_secret");
 		
@@ -77,6 +112,26 @@ public class Molos {
 //		}
 		
     }
+
+	private Map<String, Object> parseJson(String json) {
+		JsonObject jsonValue = null;
+		JsonParserFactory parserFactory = Json.createParserFactory(null);
+		JsonParser parser = parserFactory.createParser(new StringReader(json));
+		
+		if (parser.hasNext()) {
+			Event next = parser.next();
+			jsonValue = parser.getObject();//.filter(e->e.getKey().equals("active"))
+//        		.map(e->e.getValue()).findFirst().get();
+		}
+		Map<String, Object> result = new HashMap<>();
+		for (Entry<String, JsonValue> entry : jsonValue.entrySet()) {
+//			switch (entry.getValue().getValueType()) {
+//			case STRING: 
+				result.put(entry.getKey(), entry.getValue().toString()); 
+//			}
+		}
+		return result;
+	}
 
 	private Map<String, String> parseRequest(String request, HttpHeaders headers, Map<String, String> values) {
 		String[] requestParts = request.split("&");
@@ -109,12 +164,26 @@ public class Molos {
 		Map<String, String> values = new HashMap<>();
 		
 		parseRequest(request, headers, values);
+		
+		String clientId = "";
+		if (values.containsKey(CLIENT_ASSERTION_TYPE) && values.get(CLIENT_ASSERTION_TYPE).equals(SIGNED_JWT_WITH_CLIENT_SECRET)) {
+			try {
+				SignedJWT jwt = SignedJWT.parse(values.get("client_assertion"));
+				String assertion = jwt.getPayload().toString();
+				System.err.println("Assertion: " + assertion);
+				Map<String, Object> tokenMap = parseJson(assertion);
+				clientId = (String) tokenMap.get("iss");
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else {
+			clientId = values.get("client_id");
+		}
 
 		String token = values.get("token");
 		
 		TokenIntrospection tokenIntrospection = new TokenIntrospection();
-		
-		String clientId = values.get("client_id");
 
 		tokenIntrospection.setActive(state.isRegisteredToken(clientId, token));
 			

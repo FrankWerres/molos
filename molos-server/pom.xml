@@ -26,6 +26,19 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Jakarta JSON Processing -->
+		<dependency>
+			<groupId>jakarta.json</groupId>
+			<artifactId>jakarta.json-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.parsson</groupId>
+			<artifactId>parsson</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- 
+		-->
+
 		<!-- Jakarta RESTful Web Services -->
 		<dependency>
 			<groupId>jakarta.ws.rs</groupId>
@@ -45,6 +58,10 @@
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>oauth2-oidc-sdk</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.nimbusds</groupId>
+			<artifactId>nimbus-jose-jwt</artifactId>
 		</dependency>
 
 		<dependency>
