@@ -16,18 +16,16 @@ import com.fwerres.molos.config.OpenIdConfig;
 import com.fwerres.molos.data.Token;
 import com.fwerres.molos.data.TokenIntrospection;
 import com.fwerres.molos.setup.State;
-import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
-import jakarta.json.JsonValue.ValueType;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.spi.JsonbProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
-import jakarta.json.stream.JsonParser.Event;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -36,6 +34,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.UriInfo;
 
 
@@ -50,8 +49,6 @@ public class Molos {
 	
 //	@Inject 
 	private final static State state = new State();
-	
-	private Jsonb jsonb = JsonbProvider.provider().create().build();
 	
 	@GET
 	@Path("/.wellknown/openid-configuration")
@@ -72,20 +69,30 @@ public class Molos {
 		
 		if (values.containsKey(CLIENT_ASSERTION_TYPE) && values.get(CLIENT_ASSERTION_TYPE).equals(SIGNED_JWT_WITH_CLIENT_SECRET)) {
 			String clientId = "";
+			boolean verificationSuccess = false;
 			try {
 				SignedJWT jwt = SignedJWT.parse(values.get("client_assertion"));
 				String assertion = jwt.getPayload().toString();
-				System.err.println("Assertion: " + assertion);
+//				System.err.println("Assertion: " + assertion);
 				Map<String, Object> tokenMap = parseJson(assertion);
 				clientId = (String) tokenMap.get("iss");
-			} catch (ParseException e) {
-				// TODO Auto-generated catch block
+				
+				ClientConfig client = state.getClient(clientId);
+				if (client != null) {
+					JWSVerifier verifier = new MACVerifier(client.getClientSecret());
+					verificationSuccess = jwt.verify(verifier);
+				}
+			} catch (JOSEException | ParseException e) {
 				e.printStackTrace();
 			}
 			
-			Token token = new Token();
-			state.registerToken(clientId, token);
-			return Response.ok().entity(token).build();
+			if (verificationSuccess) {
+				Token token = new Token();
+				state.registerToken(clientId, token);
+				return Response.ok().entity(token).build();
+			} else {
+				return Response.status(Status.FORBIDDEN).entity("Client authentication with client secret signed JWT failed: Signature on JWT token by client secret  failed validation").build();
+			}
 			
 		}
 		
@@ -119,16 +126,13 @@ public class Molos {
 		JsonParser parser = parserFactory.createParser(new StringReader(json));
 		
 		if (parser.hasNext()) {
-			Event next = parser.next();
-			jsonValue = parser.getObject();//.filter(e->e.getKey().equals("active"))
-//        		.map(e->e.getValue()).findFirst().get();
+			parser.next();
+			jsonValue = parser.getObject();
 		}
 		Map<String, Object> result = new HashMap<>();
 		for (Entry<String, JsonValue> entry : jsonValue.entrySet()) {
-//			switch (entry.getValue().getValueType()) {
-//			case STRING: 
-				result.put(entry.getKey(), entry.getValue().toString()); 
-//			}
+			String stringValue = entry.getValue().toString();
+			result.put(entry.getKey(), stringValue.toString().substring(1, stringValue.length() - 1)); 
 		}
 		return result;
 	}
@@ -166,28 +170,39 @@ public class Molos {
 		parseRequest(request, headers, values);
 		
 		String clientId = "";
+		boolean verificationSuccess = false;
 		if (values.containsKey(CLIENT_ASSERTION_TYPE) && values.get(CLIENT_ASSERTION_TYPE).equals(SIGNED_JWT_WITH_CLIENT_SECRET)) {
 			try {
 				SignedJWT jwt = SignedJWT.parse(values.get("client_assertion"));
 				String assertion = jwt.getPayload().toString();
-				System.err.println("Assertion: " + assertion);
+//				System.err.println("Assertion: " + assertion);
 				Map<String, Object> tokenMap = parseJson(assertion);
 				clientId = (String) tokenMap.get("iss");
-			} catch (ParseException e) {
-				// TODO Auto-generated catch block
+				
+				ClientConfig client = state.getClient(clientId);
+				if (client != null) {
+					JWSVerifier verifier = new MACVerifier(client.getClientSecret());
+					verificationSuccess = jwt.verify(verifier);
+				}
+			} catch (JOSEException | ParseException e) {
 				e.printStackTrace();
 			}
 		} else {
 			clientId = values.get("client_id");
+			verificationSuccess = true;
 		}
 
-		String token = values.get("token");
-		
-		TokenIntrospection tokenIntrospection = new TokenIntrospection();
-
-		tokenIntrospection.setActive(state.isRegisteredToken(clientId, token));
+		if (verificationSuccess) {
+			String token = values.get("token");
 			
-		return Response.ok().entity(tokenIntrospection).build();
+			TokenIntrospection tokenIntrospection = new TokenIntrospection();
+	
+			tokenIntrospection.setActive(state.isRegisteredToken(clientId, token));
+				
+			return Response.ok().entity(tokenIntrospection).build();
+		} else {
+			return Response.status(Status.FORBIDDEN).entity("Client authentication with client secret signed JWT failed: Signature on JWT token by client secret  failed validation").build();
+		}
 	}
 
 	// mock configuration stuff ...

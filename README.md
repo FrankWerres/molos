@@ -10,6 +10,7 @@ The approach is to selectively support flows encountered during development of a
 
 *   retrieving an access token for a 'Client Credentials Grant' transferred via ClientCredentialsBasic and its verification on the server side
 *   retrieving an access token for a 'Client Credentials Grant' transferred via ClientCredentialsPost and its verification on the server side
+*   retrieving an access token for a 'Client Credentials Grant' transferred via ClientSecretJWT and its verification on the server side
 
 ```mermaid
 sequenceDiagram
@@ -32,3 +33,8 @@ Server->>Server: do X
 Server->>Client: I did X!
 deactivate Server
 ```
+
+## Coming next
+* add IDToken and RefreshToken to the token response
+* retrieving an IDToken for an 'Authorization Grant' and using it to verify access on an individual level
+* retrieving an IDToken with the 'Authorization Code Flow' and using it to verify access on an individual level#
