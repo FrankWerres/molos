@@ -33,8 +33,11 @@ Server->>Server: do X
 Server->>Client: I did X!
 deactivate Server
 ```
+## Latest improvements
+* added IDToken to token response
 
 ## Coming next
-* add IDToken and RefreshToken to the token response
+* verify KeyCLoak behaviour regarding use of IDToken in access verification and replicate
+* add RefreshToken to the token response
 * retrieving an IDToken for an 'Authorization Grant' and using it to verify access on an individual level
 * retrieving an IDToken with the 'Authorization Code Flow' and using it to verify access on an individual level#

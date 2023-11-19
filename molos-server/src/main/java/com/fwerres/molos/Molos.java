@@ -24,6 +24,7 @@ import com.nimbusds.jwt.SignedJWT;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
+import jakarta.json.JsonValue.ValueType;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 import jakarta.ws.rs.Consumes;
@@ -69,6 +70,7 @@ public class Molos {
 		
 		if (values.containsKey(CLIENT_ASSERTION_TYPE) && values.get(CLIENT_ASSERTION_TYPE).equals(SIGNED_JWT_WITH_CLIENT_SECRET)) {
 			String clientId = "";
+			ClientConfig client = null;
 			boolean verificationSuccess = false;
 			try {
 				SignedJWT jwt = SignedJWT.parse(values.get("client_assertion"));
@@ -77,7 +79,7 @@ public class Molos {
 				Map<String, Object> tokenMap = parseJson(assertion);
 				clientId = (String) tokenMap.get("iss");
 				
-				ClientConfig client = state.getClient(clientId);
+				client = state.getClient(clientId);
 				if (client != null) {
 					JWSVerifier verifier = new MACVerifier(client.getClientSecret());
 					verificationSuccess = jwt.verify(verifier);
@@ -87,7 +89,7 @@ public class Molos {
 			}
 			
 			if (verificationSuccess) {
-				Token token = new Token();
+				Token token = new Token(uriInfo.getBaseUri(), client);
 				state.registerToken(clientId, token);
 				return Response.ok().entity(token).build();
 			} else {
@@ -101,7 +103,7 @@ public class Molos {
 		
 		ClientConfig clientConfig = state.getClient(clientId);
 		if (clientConfig != null && clientConfig.getClientSecret().equals(clientSecret) && clientConfig.getScopes().contains(values.get("scope"))) {
-			Token token = new Token();
+			Token token = new Token(uriInfo.getBaseUri(), clientConfig);
 			state.registerToken(clientId, token);
 			return Response.ok().entity(token).build();
 		} else {
@@ -131,8 +133,12 @@ public class Molos {
 		}
 		Map<String, Object> result = new HashMap<>();
 		for (Entry<String, JsonValue> entry : jsonValue.entrySet()) {
-			String stringValue = entry.getValue().toString();
-			result.put(entry.getKey(), stringValue.toString().substring(1, stringValue.length() - 1)); 
+			if (ValueType.STRING == entry.getValue().getValueType()) {
+				String stringValue = entry.getValue().toString();
+				result.put(entry.getKey(), stringValue.toString().substring(1, stringValue.length() - 1));
+			} else {
+				result.put(entry.getKey(), entry.getValue().toString());
+			}
 		}
 		return result;
 	}

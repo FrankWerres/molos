@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 import org.apache.cxf.endpoint.Server;
 import org.junit.jupiter.api.AfterAll;
@@ -18,8 +19,12 @@ import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 import com.fwerres.molos.client.MolosConfig;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.testsupport.JaxRSHelper;
+import com.fwerres.testsupport.JsonHelper;
 import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.ClientCredentialsGrant;
 import com.nimbusds.oauth2.sdk.Scope;
@@ -206,7 +211,15 @@ public class MolosTest {
 		OIDCTokenResponse successResponse = (OIDCTokenResponse) tokenResponse.toSuccessResponse();
 
 		// Get the ID and access token, the server may also return a refresh token
-		JWT idToken = successResponse.getOIDCTokens().getIDToken();
+		SignedJWT idToken = (SignedJWT) successResponse.getOIDCTokens().getIDToken();
+		System.out.println(idToken.getParsedString());
+		Map<String, Object> tokenValues = JsonHelper.parseJson((idToken).getPayload().toString(), false);
+		for (String tokenValue : tokenValues.keySet()) {
+			System.out.println("IDToken: " + tokenValue + " - " + tokenValues.get(tokenValue));
+		}
+		JWSVerifier verifier = new MACVerifier(OIDC_CLIENT_SECRET);
+		assertTrue(idToken.verify(verifier));
+		
 		AccessToken accessToken = successResponse.getOIDCTokens().getAccessToken();
 //		RefreshToken refreshToken = successResponse.getOIDCTokens().getRefreshToken();
 		
