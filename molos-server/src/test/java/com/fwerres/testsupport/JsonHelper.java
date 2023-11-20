@@ -36,4 +36,17 @@ public class JsonHelper {
 		return result;
 	}
 
+	public static boolean responseContainsActiveTrue(String body) {
+		JsonValue jsonValue = null;
+		JsonParserFactory parserFactory = Json.createParserFactory(null);
+		JsonParser parser = parserFactory.createParser(new StringReader(body));
+		
+		if (parser.hasNext()) {
+			parser.next();
+			jsonValue = parser.getObjectStream().filter(e->e.getKey().equals("active"))
+        		.map(e->e.getValue()).findFirst().get();
+		}
+		return JsonValue.TRUE.equals(jsonValue);
+	}
+	
 }

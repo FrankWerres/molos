@@ -6,7 +6,7 @@ The approach is to selectively support flows encountered during development of a
 
 ## Currently implemented:
 
-### Client authentication, OAuth2: Verifying a shared secret in order to recognize legitimate clients, where clients are software installations, not individuals!
+### Client authentication, OAuth2: Verifying a shared secret in order to recognize legitimate clients (clients are software installations, not individuals!)
 
 *   retrieving an access token for a 'Client Credentials Grant' transferred via ClientCredentialsBasic and its verification on the server side
 *   retrieving an access token for a 'Client Credentials Grant' transferred via ClientCredentialsPost and its verification on the server side
@@ -33,11 +33,37 @@ Server->>Server: do X
 Server->>Client: I did X!
 deactivate Server
 ```
+
 ## Latest improvements
 * added IDToken to token response
 
 ## Coming next
-* verify KeyCLoak behaviour regarding use of IDToken in access verification and replicate
 * add RefreshToken to the token response
-* retrieving an IDToken for an 'Authorization Grant' and using it to verify access on an individual level
-* retrieving an IDToken with the 'Authorization Code Flow' and using it to verify access on an individual level#
+* supporting OIDC flow where the server side does not need to know the clientID/clientSecret credentials
+
+### Client authentication, OIDC: Client retrieves a signed access token that can be verified on the server locally (clients are software installations, not individuals!)
+
+```mermaid
+sequenceDiagram
+participant Client
+participant Server
+participant OAuth-/Identityprovider
+note over OAuth-/Identityprovider: Holds ClientID/-Secret
+note over Client,Server: No more shared knowledge
+Client->>OAuth-/Identityprovider: I'm <ClientID> and I know <ClientSecret><br/>I need an IDToken to verify this.
+activate OAuth-/Identityprovider
+OAuth-/Identityprovider->>Client: Here is your <IDToken>!
+deactivate OAuth-/Identityprovider
+Client->>Server: Here's my <IDToken>,<br/>please do X for me!
+activate Server
+opt Keys not yet known
+Server->>OAuth-/Identityprovider: Please give me public key<br/>to verify your signature
+activate OAuth-/Identityprovider
+OAuth-/Identityprovider->>Server: Here you are!
+deactivate OAuth-/Identityprovider
+end
+Server->>Server: verify <IDToken>
+Server->>Server: do X
+Server->>Client: I did X!
+deactivate Server
+```

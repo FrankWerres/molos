@@ -101,183 +101,69 @@ public class MolosTest {
 //	}
 	
 	@Test
-	public void testRequestVerifyTokenClientSecretBasicGrant() throws Exception {
-		// Client side: retrieve accessToken with ClientSecretBasic grant
-		
-		ClientID clientID = new ClientID(OIDC_CLIENT_ID);
+	public void testRequestVerifyTokenClientSecretBasic() throws Exception {
 
-		AuthorizationGrant clientGrant = new ClientCredentialsGrant();
-
-		// The credentials to authenticate the client at the token endpoint
-		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
-		ClientAuthentication clientAuth = new ClientSecretBasic(clientID, clientSecret);
-
-		// The request scope for the token
-		Scope scope = new Scope("openid");
-
-		// The token endpoint
-		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
-
-		// Make the token request
-		TokenRequest tokenRequest = new TokenRequest(tokenEndpoint, clientAuth, clientGrant, scope);
-
-		TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenRequest.toHTTPRequest().send());
-
-		if (! tokenResponse.indicatesSuccess()) {
-		    // We got an error response...
-		    TokenErrorResponse errorResponse = tokenResponse.toErrorResponse();
-		    System.err.println(errorResponse.toString());
-		    fail(errorResponse.toString());
-		}
-
-		OIDCTokenResponse successResponse = (OIDCTokenResponse) tokenResponse.toSuccessResponse();
-
-		// Get the ID and access token, the server may also return a refresh token
-		JWT idToken = successResponse.getOIDCTokens().getIDToken();
-		AccessToken accessToken = successResponse.getOIDCTokens().getAccessToken();
-//		RefreshToken refreshToken = successResponse.getOIDCTokens().getRefreshToken();
-		
-		String tokenValue = accessToken.getValue();
+		// Client side: retrieve accessToken with ClientSecretBasic authorization
+		String tokenValue = retrieveAccessToken(
+				// The credentials to authenticate the client at the token endpoint
+				new ClientSecretBasic(new ClientID(OIDC_CLIENT_ID), new Secret(OIDC_CLIENT_SECRET)));
 		
 		assertTrue(tokenValue != null && !tokenValue.isBlank());
 		
-		
-		// Server side: have server verify accessToken for ClientSecretBasic grant
-		
 		System.out.println("Got token: " + tokenValue);
 		
-		URI introspectionEndpoint = null;
-		try {
-			introspectionEndpoint = new URI(wsUrl + OIDC_TOKEN_INTROSPECT_URL);
-		} catch (URISyntaxException e) {
-			//NOSONAR this URL is not malformed
-		}
-
-		// Token to validate
-		AccessToken inspectedToken = new BearerAccessToken(tokenValue);
-
-		// Compose the introspection call
-		HTTPRequest httpRequest = new TokenIntrospectionRequest(
-		    introspectionEndpoint,
-		    new ClientSecretBasic(clientID, clientSecret),
-		    inspectedToken)
-		    .toHTTPRequest();
-
-		// Make the introspection call
-		HTTPResponse httpResponse = null;
-		try {
-			httpResponse = httpRequest.send();
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail("Got exception!");
-		}
-
-		String body = httpResponse.getBody();
-		System.out.println(body);
-
-		assertTrue(responseContainsActiveTrue(body));
+		// Server side: have server verify accessToken for ClientSecretBasic authorization
+		assertTrue(validateTokenWithIntrospection(
+				// The credentials to authenticate the client at the token endpoint
+				new ClientSecretBasic(new ClientID(OIDC_CLIENT_ID), new Secret(OIDC_CLIENT_SECRET)), 
+				// The token
+				tokenValue));
 	}
 	
 	@Test
-	public void testRequestVerifyTokenClientSecretPostGrant() throws Exception {
-		// Client side: retrieve accessToken with ClientSecretPost grant
-		
-		ClientID clientID = new ClientID(OIDC_CLIENT_ID);
-
-		AuthorizationGrant clientGrant = new ClientCredentialsGrant();
-
-		// The credentials to authenticate the client at the token endpoint
-		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
-		ClientAuthentication clientAuth = new ClientSecretPost(clientID, clientSecret);
-
-		// The request scope for the token
-		Scope scope = new Scope("openid");
-
-		// The token endpoint
-		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
-
-		// Make the token request
-		TokenRequest tokenRequest = new TokenRequest(tokenEndpoint, clientAuth, clientGrant, scope);
-
-		TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenRequest.toHTTPRequest().send());
-
-		if (! tokenResponse.indicatesSuccess()) {
-		    // We got an error response...
-		    TokenErrorResponse errorResponse = tokenResponse.toErrorResponse();
-		    System.err.println(errorResponse.toString());
-		    fail(errorResponse.toString());
-		}
-
-		OIDCTokenResponse successResponse = (OIDCTokenResponse) tokenResponse.toSuccessResponse();
-
-		// Get the ID and access token, the server may also return a refresh token
-		SignedJWT idToken = (SignedJWT) successResponse.getOIDCTokens().getIDToken();
-		System.out.println(idToken.getParsedString());
-		Map<String, Object> tokenValues = JsonHelper.parseJson((idToken).getPayload().toString(), false);
-		for (String tokenValue : tokenValues.keySet()) {
-			System.out.println("IDToken: " + tokenValue + " - " + tokenValues.get(tokenValue));
-		}
-		JWSVerifier verifier = new MACVerifier(OIDC_CLIENT_SECRET);
-		assertTrue(idToken.verify(verifier));
-		
-		AccessToken accessToken = successResponse.getOIDCTokens().getAccessToken();
-//		RefreshToken refreshToken = successResponse.getOIDCTokens().getRefreshToken();
-		
-		String tokenValue = accessToken.getValue();
+	public void testRequestVerifyTokenClientSecretPost() throws Exception {
+		// Client side: retrieve accessToken with ClientSecretPost authorization
+		String tokenValue = retrieveAccessToken(
+				// The credentials to authenticate the client at the token endpoint
+				new ClientSecretPost(new ClientID(OIDC_CLIENT_ID), new Secret(OIDC_CLIENT_SECRET)));
 		
 		assertTrue(tokenValue != null && !tokenValue.isBlank());
 		
-		
-		// Server side: have server verify accessToken for ClientSecretBasic grant
-		
 		System.out.println("Got token: " + tokenValue);
 		
-		URI introspectionEndpoint = null;
-		try {
-			introspectionEndpoint = new URI(wsUrl + OIDC_TOKEN_INTROSPECT_URL);
-		} catch (URISyntaxException e) {
-			//NOSONAR this URL is not malformed
-		}
-
-		// Token to validate
-		AccessToken inspectedToken = new BearerAccessToken(tokenValue);
-
-		// Compose the introspection call
-		HTTPRequest httpRequest = new TokenIntrospectionRequest(
-		    introspectionEndpoint,
-		    new ClientSecretPost(clientID, clientSecret),
-		    inspectedToken)
-		    .toHTTPRequest();
-
-		// Make the introspection call
-		HTTPResponse httpResponse = null;
-		try {
-			httpResponse = httpRequest.send();
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail("Got exception!");
-		}
-		
-		String body = httpResponse.getBody();
-		System.out.println(body);
-
-		assertTrue(responseContainsActiveTrue(body));
+		// Server side: have server verify accessToken for ClientSecretPost authorization
+		assertTrue(validateTokenWithIntrospection(
+				// The credentials to authenticate the client at the token endpoint
+				new ClientSecretPost(new ClientID(OIDC_CLIENT_ID), new Secret(OIDC_CLIENT_SECRET)), 
+				// The token
+				tokenValue));
 	}
 
 	@Test
 	public void testRequestVerifyTokenClientSecretJWT() throws Exception {
-		// Client side: retrieve accessToken with ClientSecretBasic grant
-		
-		ClientID clientID = new ClientID(OIDC_CLIENT_ID);
 
+		// Client side: retrieve accessToken with ClientSecretJWT authorization
+		String tokenValue = retrieveAccessToken(
+				// The credentials to authenticate the client at the token endpoint
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET)));
+		
+		assertTrue(tokenValue != null && !tokenValue.isBlank());
+		
+		System.out.println("Got token: " + tokenValue);
+		
+		// Server side: have server verify accessToken for ClientSecretJWT authorization
+		assertTrue(validateTokenWithIntrospection(
+				// The credentials to authenticate the client at the token endpoint
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET)), 
+				// The token
+				tokenValue));
+	}
+	
+	private String retrieveAccessToken(ClientAuthentication clientAuth) throws Exception {
 		AuthorizationGrant clientGrant = new ClientCredentialsGrant();
 		
 		// The token endpoint
 		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
-
-		// The credentials to authenticate the client at the token endpoint
-		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
-		ClientAuthentication clientAuth = new ClientSecretJWT(clientID, tokenEndpoint, JWSAlgorithm.HS256, clientSecret);
 
 		// The request scope for the token
 		Scope scope = new Scope("openid");
@@ -297,33 +183,22 @@ public class MolosTest {
 		OIDCTokenResponse successResponse = (OIDCTokenResponse) tokenResponse.toSuccessResponse();
 
 		// Get the ID and access token, the server may also return a refresh token
-		JWT idToken = successResponse.getOIDCTokens().getIDToken();
 		AccessToken accessToken = successResponse.getOIDCTokens().getAccessToken();
-//		RefreshToken refreshToken = successResponse.getOIDCTokens().getRefreshToken();
 		
-		String tokenValue = accessToken.getValue();
+		return accessToken.getValue();
+	}
+
+	private boolean validateTokenWithIntrospection(ClientAuthentication clientAuth, String tokenString) throws Exception {
 		
-		assertTrue(tokenValue != null && !tokenValue.isBlank());
-		
-		
-		// Server side: have server verify accessToken for ClientSecretBasic grant
-		
-		System.out.println("Got token: " + tokenValue);
-		
-		URI introspectionEndpoint = null;
-		try {
-			introspectionEndpoint = new URI(wsUrl + OIDC_TOKEN_INTROSPECT_URL);
-		} catch (URISyntaxException e) {
-			//NOSONAR this URL is not malformed
-		}
+		URI introspectionEndpoint = new URI(wsUrl + OIDC_TOKEN_INTROSPECT_URL);
 
 		// Token to validate
-		AccessToken inspectedToken = new BearerAccessToken(tokenValue);
+		AccessToken inspectedToken = new BearerAccessToken(tokenString);
 
 		// Compose the introspection call
 		HTTPRequest httpRequest = new TokenIntrospectionRequest(
 		    introspectionEndpoint,
-		    new ClientSecretJWT(clientID, tokenEndpoint, JWSAlgorithm.HS256, clientSecret),
+		    clientAuth,
 		    inspectedToken)
 		    .toHTTPRequest();
 
@@ -338,8 +213,9 @@ public class MolosTest {
 		String body = httpResponse.getBody();
 		System.out.println(body);
 
-		assertTrue(responseContainsActiveTrue(body));
+		return responseContainsActiveTrue(body);
 	}
+
 	
 	private boolean responseContainsActiveTrue(String body) {
 		JsonValue jsonValue = null;
