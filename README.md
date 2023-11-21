@@ -34,14 +34,7 @@ Server->>Client: I did X!
 deactivate Server
 ```
 
-## Latest improvements
-* added IDToken to token response
-
-## Coming next
-* add RefreshToken to the token response
-* supporting OIDC flow where the server side does not need to know the clientID/clientSecret credentials
-
-### Client authentication, OIDC: Client retrieves a signed access token that can be verified on the server locally (clients are software installations, not individuals!)
+### Client authentication, OIDC: Client retrieves a signed id token that can be verified on the server locally (clients are software installations, not individuals!)
 
 ```mermaid
 sequenceDiagram
@@ -67,3 +60,11 @@ Server->>Server: do X
 Server->>Client: I did X!
 deactivate Server
 ```
+
+## Latest improvements
+* added IDToken to token response
+* supporting OIDC flow where the server side does not need to know the clientID/clientSecret credentials
+
+## Coming next
+* add RefreshToken to the token response
+* Replacing hand-written server-side code with actual standard-compliant server 

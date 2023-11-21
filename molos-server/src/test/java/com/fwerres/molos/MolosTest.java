@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Map;
+import java.util.Scanner;
 
 import org.apache.cxf.endpoint.Server;
 import org.junit.jupiter.api.AfterAll;
@@ -40,10 +42,15 @@ import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
+import com.nimbusds.oauth2.sdk.id.Issuer;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
+import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet;
+import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
+import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
+import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 
 import jakarta.json.Json;
 import jakarta.json.JsonValue;
@@ -57,7 +64,9 @@ public class MolosTest {
 
 	private static final String OIDC_CLIENT_SECRET = "OIDC_CLIENT_SECRETOIDC_CLIENT_SECRET";
 
-	private static String OIDC_TOKEN_URL = "/protocol/openid-connect/token";
+	private static final String OIDC_TOKEN_URL = "/protocol/openid-connect/token";
+
+	private static final String OIDC_JWKS_URI = "/protocol/openid-connect/certs";
 	
 	private static final String OIDC_TOKEN_INTROSPECT_URL = "/protocol/openid-connect/token/introspect";
 
@@ -159,7 +168,34 @@ public class MolosTest {
 				tokenValue));
 	}
 	
+	
+	@Test
+	public void testRequestVerifyIDToken() throws Exception {
+		
+		// Client side: retrieve IDToken with ClientSecretJWT grant
+		String tokenValue = retrieveIDToken(
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET)));
+		
+		assertTrue(tokenValue != null && !tokenValue.isBlank());
+		
+		System.out.println("Got token: " + tokenValue);
+		
+		SignedJWT idToken = SignedJWT.parse(tokenValue);
+		assertTrue(idToken != null);
+		
+		// Server side: verify token signature
+		assertTrue(validateIDTokenLocally(tokenValue));
+	}
+
 	private String retrieveAccessToken(ClientAuthentication clientAuth) throws Exception {
+		return retrieveTokens(clientAuth).getAccessToken().getValue();
+	}
+
+	private String retrieveIDToken(ClientAuthentication clientAuth) throws Exception {
+		return retrieveTokens(clientAuth).getIDToken().serialize();
+	}
+
+	private OIDCTokens retrieveTokens(ClientAuthentication clientAuth) throws Exception {
 		AuthorizationGrant clientGrant = new ClientCredentialsGrant();
 		
 		// The token endpoint
@@ -181,11 +217,8 @@ public class MolosTest {
 		}
 
 		OIDCTokenResponse successResponse = (OIDCTokenResponse) tokenResponse.toSuccessResponse();
-
-		// Get the ID and access token, the server may also return a refresh token
-		AccessToken accessToken = successResponse.getOIDCTokens().getAccessToken();
 		
-		return accessToken.getValue();
+		return successResponse.getOIDCTokens();
 	}
 
 	private boolean validateTokenWithIntrospection(ClientAuthentication clientAuth, String tokenString) throws Exception {
@@ -214,6 +247,23 @@ public class MolosTest {
 		System.out.println(body);
 
 		return responseContainsActiveTrue(body);
+	}
+
+	private boolean validateIDTokenLocally(String tokenString) throws Exception {
+		SignedJWT jwt = SignedJWT.parse(tokenString);
+		Map<String, Object> tokenValues = JsonHelper.parseJson(jwt.getPayload().toString(), true);
+		for (String tv : tokenValues.keySet()) {
+			System.out.println("IDToken: " + tv + " - " + tokenValues.get(tv));
+		}
+		Issuer iss = new Issuer((String) tokenValues.get("iss"));
+		ClientID clientId = new ClientID((String) tokenValues.get("aud"));
+		IDTokenValidator srvValidator = new IDTokenValidator(iss, clientId, JWSAlgorithm.RS256, new URL(wsUrl + OIDC_JWKS_URI));
+
+		IDTokenClaimsSet claimsSet = srvValidator.validate(jwt, null);
+		
+		System.out.println("claimsSet: " + claimsSet);
+		
+		return true;
 	}
 
 	

@@ -42,7 +42,7 @@ public class MolosTestWIthKC {
 
 	
 	@Test
-	public void testRequestVerifyTokenClientSecretJWT() throws Exception {
+	public void testRequestVerifyIDToken() throws Exception {
 		// Client side: retrieve accessToken with ClientSecretBasic grant
 		
 		ClientID clientID = new ClientID(OIDC_CLIENT_ID);

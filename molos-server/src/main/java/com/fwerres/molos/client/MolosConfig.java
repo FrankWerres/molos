@@ -80,7 +80,7 @@ public class MolosConfig {
 	public OpenIdConfig getOIDCConfig() {
 		Client client = ClientBuilder.newClient();
 		
-		Response response = client.target(url + OpenIdConfig.PATH_CONFIG_ENDPOINT ).request().get();
+		Response response = client.target(url + OpenIdConfig.PATH_CONFIG_ENDPOINT).request().get();
 		
 		OpenIdConfig result = response.readEntity(OpenIdConfig.class);
 		

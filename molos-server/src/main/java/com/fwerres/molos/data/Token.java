@@ -15,6 +15,8 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
@@ -30,17 +32,17 @@ public class Token {
 //	private int not_before_policy = 0;
 	private String scope = "openid profile email";
 	
-	public Token(URI issuer, ClientConfig clientConfig) {
+	public Token(URI issuer, ClientConfig clientConfig, RSAKey key) {
 		TimeZone tz = TimeZone.getTimeZone("UTC");
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
 		df.setTimeZone(tz);
 		Date now = new Date();
 		String nowAsISO = df.format(now);
 		access_token = "access_token_" + nowAsISO + "_" + Long.toString(new Random().nextLong());
-		id_token = createIdToken(issuer, clientConfig, now);
+		id_token = createIdToken(issuer, clientConfig, now, key);
 	}
 	
-	private String createIdToken(URI issuer, ClientConfig clientConfig, Date now) {
+	private String createIdToken(URI issuer, ClientConfig clientConfig, Date now, RSAKey key) {
 		JWTClaimsSet claims = new JWTClaimsSet.Builder()
 										.issueTime(now)
 										.issuer(issuer.toString())
@@ -49,10 +51,10 @@ public class Token {
 										.subject(clientConfig.getClientId())
 										.jwtID(UUID.randomUUID().toString())
 										.build();
-		JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
+		JWSHeader header = new JWSHeader(JWSAlgorithm.RS256);
 		SignedJWT jwt = new SignedJWT(header, claims);
 		try {
-			JWSSigner signer = new MACSigner(clientConfig.getClientSecret());
+			JWSSigner signer =  new RSASSASigner(key); 
 			jwt.sign(signer);
 		} catch (JOSEException e) {
 			e.printStackTrace();

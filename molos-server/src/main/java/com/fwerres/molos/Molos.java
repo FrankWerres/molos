@@ -1,5 +1,6 @@
 package com.fwerres.molos;
 
+import java.io.File;
 import java.io.StringReader;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
@@ -9,22 +10,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import com.fwerres.molos.config.ClientConfig;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
 import com.fwerres.molos.data.Token;
 import com.fwerres.molos.data.TokenIntrospection;
+import com.fwerres.molos.setup.KeyGenerator;
 import com.fwerres.molos.setup.State;
+import com.nimbusds.jose.Algorithm;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.SignedJWT;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonValue.ValueType;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 import jakarta.ws.rs.Consumes;
@@ -45,18 +56,79 @@ public class Molos {
 
 	private static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
 
+	private final static Map<String, JWK> keys = new HashMap<>();
+	private final static Map<String, JWK> pubKeys = new HashMap<>();
+	private static JWK signKey;
+	
 	@Context
 	private UriInfo uriInfo;
 	
 //	@Inject 
 	private final static State state = new State();
 	
+	public Molos() {
+		checkConfiguration();
+	}
+	
+	public void checkConfiguration() { 
+		synchronized(Molos.class) {
+			System.err.println("Check environment ...");
+			File confDir = ensureConfigDir();
+			ensureCertificates();
+		}
+	}
+	
+	private void ensureCertificates() {
+		if (keys.isEmpty()) {
+			String kid1 = "enc:" + UUID.randomUUID();
+			JWK jwk = KeyGenerator.generateRSAKey(2048, KeyUse.ENCRYPTION, Algorithm.parse("RSA-OAEP"), kid1); 
+			keys.put(kid1, jwk);
+			pubKeys.put(kid1, jwk.toPublicJWK());
+			System.out.println(kid1 + " - " + jwk.toPublicJWK().toJSONString());
+
+			String kid2 = "sig:" + UUID.randomUUID();
+			jwk = KeyGenerator.generateRSAKey(2048, KeyUse.SIGNATURE, Algorithm.parse("RS256"), kid2);
+			signKey = jwk;
+			keys.put(kid2, jwk);
+			pubKeys.put(kid2, jwk.toPublicJWK());
+			System.out.println(kid2 + " - " + jwk.toPublicJWK().toJSONString());
+		}
+	}
+
+	private File ensureConfigDir() {
+		String molosDir = System.getenv("MOLOS_DIR");
+		if (molosDir == null || molosDir.isEmpty()) {
+			molosDir = "./.molos";
+		}
+		File confDir = new File(molosDir);
+		if (!confDir.exists()) {
+			System.out.println("confDir " + confDir.getAbsolutePath() + " doesn't exist");
+			confDir.mkdirs();
+			System.out.println("confDir " + confDir.getAbsolutePath() + " created");
+		}
+		return confDir;
+	}
+
 	@GET
-	@Path("/.wellknown/openid-configuration")
+	@Path("/.well-known/openid-configuration")
     @Produces({ "application/json" })
     public Response openIdConfiguration() {
         return Response.ok().entity(new OpenIdConfig(uriInfo.getBaseUri().toString())).build();
     }
+	
+	@GET
+	@Path("/protocol/openid-connect/certs")
+	@Produces({ "application/json" })
+	public Response certificates() {
+		String certs = "{\"keys\":[";
+		String separator = "";
+		for (JWK jwk : pubKeys.values()) {
+			certs = certs.concat(separator).concat(jwk.toJSONString());
+			separator = ",";
+		}
+		certs = certs.concat("]}");
+		return Response.ok().entity(certs).build();
+	}
 	
 	@POST
 	@Path("/protocol/openid-connect/token")
@@ -89,7 +161,7 @@ public class Molos {
 			}
 			
 			if (verificationSuccess) {
-				Token token = new Token(uriInfo.getBaseUri(), client);
+				Token token = new Token(uriInfo.getBaseUri(), client, (RSAKey) signKey);
 				state.registerToken(clientId, token);
 				return Response.ok().entity(token).build();
 			} else {
@@ -103,7 +175,7 @@ public class Molos {
 		
 		ClientConfig clientConfig = state.getClient(clientId);
 		if (clientConfig != null && clientConfig.getClientSecret().equals(clientSecret) && clientConfig.getScopes().contains(values.get("scope"))) {
-			Token token = new Token(uriInfo.getBaseUri(), clientConfig);
+			Token token = new Token(uriInfo.getBaseUri(), clientConfig, (RSAKey) signKey);
 			state.registerToken(clientId, token);
 			return Response.ok().entity(token).build();
 		} else {
