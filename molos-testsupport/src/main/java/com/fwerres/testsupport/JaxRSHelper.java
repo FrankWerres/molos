@@ -1,14 +1,30 @@
+/*
+ * Copyright 2023 Frank Werres (https://github.com/FrankWerres/molos)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.fwerres.testsupport;
 
 import java.util.Arrays;
 
+//import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
+
 import org.apache.cxf.endpoint.Server;
 import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
-import org.apache.cxf.jaxrs.JAXRSServiceFactoryBean;
 
 public class JaxRSHelper {
 
-	public Server createLocalCXFServer(String wsUri, Class<?> serverClass, Object[] providers, Object[] filters) throws Exception {
+	public Server createLocalCXFServer(String wsUri, Class<?> serverClass, Object provider, Object[] filters) throws Exception {
 		if (!wsUri.startsWith("/")) {
 			throw new IllegalArgumentException("Expect uri to begin with /!");
 		}
@@ -18,9 +34,9 @@ public class JaxRSHelper {
 		String url = "http://localhost:".concat(Integer.toString(portNumber)).concat(wsUri);
 
 		JAXRSServerFactoryBean serverFactoryBean = new JAXRSServerFactoryBean();
-		
-		if (providers != null) {
-			serverFactoryBean.setProviders(Arrays.asList(providers));
+
+		if (provider != null) {
+			serverFactoryBean.setProvider(provider);
 		}
 		
 		serverFactoryBean.setServiceClass(serverClass);

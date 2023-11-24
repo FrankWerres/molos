@@ -1,3 +1,18 @@
+/*
+ * Copyright 2023 Frank Werres (https://github.com/FrankWerres/molos)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.fwerres.molos.client;
 
 import java.util.Collections;
@@ -12,6 +27,7 @@ import com.fwerres.molos.config.OpenIdConfig;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.core.Configuration;
 import jakarta.ws.rs.core.Response;
 
 public class MolosConfig {
@@ -59,17 +75,32 @@ public class MolosConfig {
 	
 	
 	private final String url;
+	private final Object provider;
 	
-	private MolosConfig(String url) {
+	private MolosConfig(String url, Object provider) {
 		this.url = url;
+		this.provider = provider;
 	}
 	
 	public static MolosConfig getConfigurator(String url) {
-		return new MolosConfig(url);
+		return new MolosConfig(url, null);
 	}
 	
-	public MolosResult clear() {
+	public static MolosConfig getConfigurator(String url, Object provider) {
+		return new MolosConfig(url, provider);
+	}
+
+	public Client getRsClient() {
 		Client client = ClientBuilder.newClient();
+		if (provider != null) {
+			client.register(provider);
+		}
+		return client;
+	}
+	
+
+	public MolosResult clear() {
+		Client client = getRsClient();
 		
 		Response response = client.target(url + "/mock-setup/clear").request().post(null);
 		
@@ -78,7 +109,7 @@ public class MolosConfig {
 	}
 	
 	public OpenIdConfig getOIDCConfig() {
-		Client client = ClientBuilder.newClient();
+		Client client = getRsClient();
 		
 		Response response = client.target(url + OpenIdConfig.PATH_CONFIG_ENDPOINT).request().get();
 		
@@ -92,7 +123,7 @@ public class MolosConfig {
 	}
 
 	private MolosResult addClient(ClientConfig clientConfig) {
-		Client client = ClientBuilder.newClient();
+		Client client = getRsClient();
 		
 		Response response = client.target(url + "/mock-setup/client").request().post(Entity.json(clientConfig));
 		

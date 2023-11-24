@@ -1,3 +1,18 @@
+/*
+ * Copyright 2023 Frank Werres (https://github.com/FrankWerres/molos)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.fwerres.molos.data;
 
 import java.net.URI;
@@ -38,8 +53,31 @@ public class Token {
 		df.setTimeZone(tz);
 		Date now = new Date();
 		String nowAsISO = df.format(now);
-		access_token = "access_token_" + nowAsISO + "_" + Long.toString(new Random().nextLong());
+		access_token = createAccessToken(issuer, clientConfig, now, key);
 		id_token = createIdToken(issuer, clientConfig, now, key);
+	}
+	
+	private String createAccessToken(URI issuer, ClientConfig clientConfig, Date now, RSAKey key) {
+		JWTClaimsSet claims = new JWTClaimsSet.Builder()
+										.issueTime(now)
+										.issuer(issuer.toString())
+										.expirationTime(new Date(now.getTime() + expires_in * 1000))
+										.audience(clientConfig.getClientId())
+										.subject(clientConfig.getClientId())
+										.claim("upn", clientConfig.getClientId())
+										.jwtID(UUID.randomUUID().toString())
+										.claim("groups", new Object[] { "trustedClient"})
+										.build();
+		JWSHeader header = new JWSHeader(JWSAlgorithm.RS256, null, null, null, null, null, null, null, null, null, key.getKeyID(), true, null, null);
+		
+		SignedJWT jwt = new SignedJWT(header, claims);
+		try {
+			JWSSigner signer =  new RSASSASigner(key); 
+			jwt.sign(signer);
+		} catch (JOSEException e) {
+			e.printStackTrace();
+		}
+		return jwt.serialize();
 	}
 	
 	private String createIdToken(URI issuer, ClientConfig clientConfig, Date now, RSAKey key) {
@@ -49,9 +87,14 @@ public class Token {
 										.expirationTime(new Date(now.getTime() + expires_in * 1000))
 										.audience(clientConfig.getClientId())
 										.subject(clientConfig.getClientId())
+										.claim("upn", clientConfig.getClientId())
 										.jwtID(UUID.randomUUID().toString())
+										.claim("groups", new Object[] { "trustedClient"})
+//										.claim("alg", "RS256")
+//										.claim("kid", key.getKeyID())
 										.build();
-		JWSHeader header = new JWSHeader(JWSAlgorithm.RS256);
+		JWSHeader header = new JWSHeader(JWSAlgorithm.RS256, null, null, null, null, null, null, null, null, null, key.getKeyID(), true, null, null);
+		
 		SignedJWT jwt = new SignedJWT(header, claims);
 		try {
 			JWSSigner signer =  new RSASSASigner(key); 

@@ -13,18 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.fwerres.molos.data;
+package com.fwerres.molos.sample.securedapp;
 
-public class TokenIntrospection {
+import jakarta.ws.rs.ApplicationPath;
+import jakarta.ws.rs.core.Application;
 
-	private boolean active = true;
+@ApplicationPath("backend")
+public class SecuredApplication extends Application {
 
-	public boolean isActive() {
-		return active;
-	}
-
-	public void setActive(boolean active) {
-		this.active = active;
-	}
-	
 }

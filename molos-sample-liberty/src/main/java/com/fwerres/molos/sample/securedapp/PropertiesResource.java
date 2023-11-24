@@ -13,18 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.fwerres.molos.data;
+package com.fwerres.molos.sample.securedapp;
 
-public class TokenIntrospection {
+import java.util.Properties;
 
-	private boolean active = true;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
-	public boolean isActive() {
-		return active;
+@Path("properties")
+public class PropertiesResource {
+
+	@GET
+	@Path("unsecure")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Properties getProperties() {
+		return System.getProperties();
 	}
 
-	public void setActive(boolean active) {
-		this.active = active;
+	@GET
+	@Path("secured")
+	@RolesAllowed({ "trustedClient", "admin"})
+	@Produces(MediaType.APPLICATION_JSON)
+	public Properties getPropertiesSecured() {
+		return System.getProperties();
 	}
-	
 }

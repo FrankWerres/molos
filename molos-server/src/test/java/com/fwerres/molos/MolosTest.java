@@ -1,3 +1,18 @@
+/*
+ * Copyright 2023 Frank Werres (https://github.com/FrankWerres/molos)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.fwerres.molos;
 
 
@@ -17,7 +32,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 import com.fwerres.molos.client.MolosConfig;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.testsupport.JaxRSHelper;
@@ -51,6 +65,7 @@ import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
+import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 
 import jakarta.json.Json;
 import jakarta.json.JsonValue;
@@ -62,7 +77,7 @@ public class MolosTest {
 
 	private static final String OIDC_CLIENT_ID = "OIDC_CLIENT_ID";
 
-	private static final String OIDC_CLIENT_SECRET = "OIDC_CLIENT_SECRETOIDC_CLIENT_SECRET";
+	private static final String OIDC_CLIENT_SECRET = "OIDC_CLIENT_SECRET_IS2SHORT_OIDC_CLIENT_SECRET";
 
 	private static final String OIDC_TOKEN_URL = "/protocol/openid-connect/token";
 
@@ -79,7 +94,7 @@ public class MolosTest {
 	@BeforeAll
 	public static void setUp() throws Exception {
 		if (theServer == null) {
-			theServer = jaxrs.createLocalCXFServer("/oidcMock", Molos.class, new Object[] { new JacksonJsonProvider() }, new Object[] { });
+			theServer = jaxrs.createLocalCXFServer("/oidcMock", Molos.class, new JacksonJsonProvider(), new Object[] { });
 			wsUrl = jaxrs.getActualUrl(theServer);
 			System.out.println("Started server on " + wsUrl);
 			
