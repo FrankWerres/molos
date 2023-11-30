@@ -18,18 +18,60 @@ package com.fwerres.molos;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.spi.HttpServerProvider;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.HttpCookie;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.net.http.HttpRequest;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
+import java.net.http.HttpRequest.BodyPublisher;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.openqa.selenium.By;
+import org.openqa.selenium.Proxy;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeDriverService;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxOptions;
+import org.openqa.selenium.remote.http.ClientConfig;
 
 import com.fwerres.testsupport.JsonHelper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.oauth2.sdk.AuthorizationCode;
+import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.AuthorizationRequest;
 import com.nimbusds.oauth2.sdk.ClientCredentialsGrant;
@@ -59,6 +101,7 @@ import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 
 import jakarta.json.JsonArray;
+import jakarta.ws.rs.core.HttpHeaders;
 import net.minidev.json.JSONArray;
 
 public class MolosTestWIthKC {
@@ -353,36 +396,144 @@ public class MolosTestWIthKC {
 		assertTrue(groups != null && groups.length > 0, "Claim 'groups' missing or empty!");
 	}
 
+	private class CallbackHandler implements HttpHandler {
+
+		@Override
+		public void handle(HttpExchange exchange) throws IOException {
+			// TODO Auto-generated method stub
+			System.err.println("Handling HttpExchange " + exchange.getRequestMethod() + " " + exchange.getRequestURI().toString());
+			Map<String, String> parameters = retrieveQueryParameters(exchange.getRequestURI().toString());
+			codeRcvd = parameters.get("code");
+			stateRcvd = parameters.get("state");
+			handleResponse(exchange, "");
+		}
+
+		public Map<String, String> retrieveQueryParameters(String uri) {
+			return Arrays.asList(uri.split("\\?")[1].split("&"))
+					.stream()
+					.map(parameter -> parameter.split("="))
+					.collect(Collectors.toMap(p -> p[0], p -> p[1]));
+		}
+
+		private void handleResponse(HttpExchange httpExchange, String requestParamValue) throws IOException {
+			OutputStream outputStream = httpExchange.getResponseBody();
+			httpExchange.sendResponseHeaders(200, 0);
+			outputStream.flush();
+			outputStream.close();
+		}
+	}
+
+	private String codeRcvd = null;
+	private String stateRcvd = null;
+	
 	@Test
 	public void loginUser() throws Exception {
+		ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+		HttpServer server = HttpServerProvider.provider().createHttpServer(new InetSocketAddress("localhost", 8001), 0);
+		server.createContext("/callback", new  CallbackHandler());
+		server.setExecutor(threadPoolExecutor);
+		server.start();
+		
+		System.err.println("Started " + server.toString());
+
 		ClientID clientId = new ClientID(OIDC_CLIENT_ID);
 		
-		URI callback = new URI("http://localhost/callback");
+		URI callback = new URI("http://localhost:8001/callback");
 		
 		State state = new State();
 		
 		Nonce nonce = new Nonce();
 		
+//		AuthorizationRequest request = new AuthorizationRequest.Builder(
+//												new ResponseType("id_token"), clientId)
+//											.endpointURI(new URI(wsUrl + OIDC_AUTHORISATION_URL))
+//											.redirectionURI(callback)
+//											.state(state)
+//											.build();
+
 		AuthenticationRequest request = new AuthenticationRequest.Builder(
-												new ResponseType("code"), new Scope("openid"), clientId, callback)
-											.endpointURI(new URI(wsUrl + OIDC_AUTHORISATION_URL))
-											.state(state)
-											.nonce(nonce)
-											.build();
+				new ResponseType("code"), new Scope("openid"), clientId, callback)
+			.endpointURI(new URI(wsUrl + OIDC_AUTHORISATION_URL))
+			.state(state)
+			.nonce(nonce)
+			.build();
 		
 		System.out.println(request.toURI().toString());
-		HTTPRequest req = request.toHTTPRequest();
-		HTTPResponse response = req.send();
 		
-		assertEquals(200, response.getStatusCode());
 		
-		String body = response.getBody();
+	    ChromeOptions options = new ChromeOptions();
+	    
+	    // If SeleniumManager needs to use a proxy to reach chrome download
+//	    Proxy proxy = new Proxy();
+//	    proxy.setHttpProxy("<host>:<port>");
+//	    options.setCapability("proxy", proxy);
+	    
+	    WebDriver driver = new ChromeDriver(options);
+	    
 		
-		System.out.println(body);
+		driver.get(request.toURI().toString());
+		driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));
+
+		WebElement userIdBox = driver.findElement(By.name("username"));
+		userIdBox.sendKeys("theuser");
+		WebElement passwordBox = driver.findElement(By.name("password"));
+		passwordBox.sendKeys("secretPassword");
+        WebElement submitButton = driver.findElement(By.name("login"));
+        submitButton.click();
+        
+        Thread.sleep(500);
+        driver.close();
+        server.stop(0);
+        System.out.println("");
 		
-		// This will trigger callback
-		String action = getActionFromHtmlForm(body);
+        assertNotNull(codeRcvd);
+        assertEquals(state.getValue(), stateRcvd);
+        
+        
+		AuthorizationGrant authCodeGrant = new AuthorizationCodeGrant(new AuthorizationCode(codeRcvd), callback);
 		
+		// The token endpoint
+		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
+
+		// The credentials to authenticate the client at the token endpoint
+		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
+		ClientAuthentication clientAuth = new ClientSecretJWT(clientId, tokenEndpoint, JWSAlgorithm.HS256, clientSecret);
+
+		// The request scope for the token
+		Scope scope = new Scope("openid");
+
+		// Make the token request
+		TokenRequest tokenRequest = new TokenRequest(tokenEndpoint, clientAuth, authCodeGrant, scope);
+
+		TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenRequest.toHTTPRequest().send());
+
+		if (!tokenResponse.indicatesSuccess()) {
+		    // We got an error response...
+		    TokenErrorResponse errorResponse = tokenResponse.toErrorResponse();
+		    System.err.println(errorResponse.getErrorObject().getDescription());
+		    fail(errorResponse.getErrorObject().getDescription());
+		}
+
+		OIDCTokenResponse successResponse = (OIDCTokenResponse) tokenResponse.toSuccessResponse();
+
+		// Get the ID and access token, the server may also return a refresh token
+//		SignedJWT idToken = (SignedJWT) successResponse.getOIDCTokens().getIDToken();
+		AccessToken accessToken = successResponse.getOIDCTokens().getAccessToken();
+//		RefreshToken refreshToken = successResponse.getOIDCTokens().getRefreshToken();
+		
+		assertTrue(accessToken != null);
+		
+//		System.out.println("TokenType: " + accessToken.getIssuedTokenType().toString());
+		
+		SignedJWT jwt = SignedJWT.parse(accessToken.getValue());
+		
+		// Verify id token
+		
+		Map<String, Object> tokenValues = JsonHelper.parseJson(jwt.getPayload().toString(), true);
+		for (String tv : tokenValues.keySet()) {
+			System.out.println("IDToken: " + tv + " - " + tokenValues.get(tv));
+		}
+        
 	}
 	
 	private String getActionFromHtmlForm(String htmlForm) {
