@@ -15,6 +15,8 @@
  */
 package com.fwerres.molos;
 
+
+
 import java.io.File;
 import java.io.StringReader;
 import java.net.URLDecoder;
@@ -130,6 +132,13 @@ public class Molos {
     public Response openIdConfiguration() {
         return Response.ok().entity(new OpenIdConfig(uriInfo.getBaseUri().toString())).build();
     }
+	
+	@GET
+	@Path("/protocol/openid-connect/auth")
+	@Produces({ "application/html" })
+	public Response getAuthorization() {
+		return Response.ok().entity("magic value").build();
+	}
 	
 	@GET
 	@Path("/protocol/openid-connect/certs")

@@ -116,7 +116,7 @@ public class MolosTestWIthKC {
 
 	private static String wsUrl = "http://localhost:8081/realms/myRealm";
 
-	private static final String OIDC_AUTHORISATION_URL = "/protocol/openid-connect/auth";
+	private static final String OIDC_AUTHORIZATION_URL = "/protocol/openid-connect/auth";
 	
 	@Test
 	@Disabled
@@ -453,7 +453,7 @@ public class MolosTestWIthKC {
 
 		AuthenticationRequest request = new AuthenticationRequest.Builder(
 				new ResponseType("code"), new Scope("openid"), clientId, callback)
-			.endpointURI(new URI(wsUrl + OIDC_AUTHORISATION_URL))
+			.endpointURI(new URI(wsUrl + OIDC_AUTHORIZATION_URL))
 			.state(state)
 			.nonce(nonce)
 			.build();
@@ -469,10 +469,10 @@ public class MolosTestWIthKC {
 //	    options.setCapability("proxy", proxy);
 	    
 	    WebDriver driver = new ChromeDriver(options);
-	    
 		
-		driver.get(request.toURI().toString());
-		driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));
+	    driver.manage().timeouts().implicitlyWait(Duration.ofMillis(500));
+
+	    driver.get(request.toURI().toString());
 
 		WebElement userIdBox = driver.findElement(By.name("username"));
 		userIdBox.sendKeys("theuser");
@@ -481,7 +481,9 @@ public class MolosTestWIthKC {
         WebElement submitButton = driver.findElement(By.name("login"));
         submitButton.click();
         
-        Thread.sleep(500);
+        assertTrue(driver.getCurrentUrl().startsWith(callback.toString()));
+        
+//        Thread.sleep(500);
         driver.close();
         server.stop(0);
         System.out.println("");

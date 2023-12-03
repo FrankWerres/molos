@@ -20,19 +20,22 @@ import java.util.Set;
 
 public class OpenIdConfig {
 
-	public static final String PATH_TOKEN_INTROSPECTION_ENDPOINT = "/protocol/openid-connect/token/introspect";
-	public static final String PATH_TOKEN_ENDPOINT = "/protocol/openid-connect/token";
-	public static final String PATH_JWKS_URI = "/protocol/openid-connect/certs";
+	public static final String PATH_AUTHORIZATION_ENDPOINT ="/protocol/openid-connect/auth";
 	public static final String PATH_CONFIG_ENDPOINT = "/.well-known/openid-configuration";
+	public static final String PATH_JWKS_URI = "/protocol/openid-connect/certs";
+	public static final String PATH_TOKEN_ENDPOINT = "/protocol/openid-connect/token";
+	public static final String PATH_TOKEN_INTROSPECTION_ENDPOINT = "/protocol/openid-connect/token/introspect";
 	
 	private String issuer;
-	private String token_endpoint;
+	private String authorization_endpoint;
 	private String introspection_endpoint;
-	private Set<String> subject_types_supported = new HashSet<>();
 	private String jwks_uri;
+	private String token_endpoint;
+	private Set<String> subject_types_supported = new HashSet<>();
 
 	public OpenIdConfig(String baseUrl) {
 		issuer = baseUrl;
+		authorization_endpoint = baseUrl + PATH_AUTHORIZATION_ENDPOINT;
 		token_endpoint = baseUrl + PATH_TOKEN_ENDPOINT;
 		introspection_endpoint = baseUrl + PATH_TOKEN_INTROSPECTION_ENDPOINT;
 		jwks_uri = baseUrl + PATH_JWKS_URI;
@@ -80,6 +83,16 @@ public class OpenIdConfig {
 
 	public void setJwks_uri(String jwks_uri) {
 		this.jwks_uri = jwks_uri;
+	}
+
+	public String getAuthorization_endpoint() {
+		return authorization_endpoint;
+		
+	}
+
+	public void setAuthorization_endpoint(String authorization_endpoint) {
+		this.authorization_endpoint = authorization_endpoint;
+		
 	}
 	
 }

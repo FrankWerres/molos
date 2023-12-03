@@ -65,6 +65,7 @@ public class MolosConfigTest {
 		
 		assertTrue(config != null);
 		assertFalse(config.getIssuer().isEmpty());
+		assertFalse(config.getAuthorization_endpoint().isEmpty());
 		assertFalse(config.getIntrospection_endpoint().isEmpty());
 		assertFalse(config.getToken_endpoint().isEmpty());
 	}
