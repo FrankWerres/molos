@@ -23,11 +23,11 @@ import java.util.Set;
 import com.fwerres.molos.config.ClientConfig;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
+import com.fwerres.molos.config.UserConfig;
 
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.core.Configuration;
 import jakarta.ws.rs.core.Response;
 
 public class MolosConfig {
@@ -72,6 +72,47 @@ public class MolosConfig {
 		public void remove() {
 		}
 	}
+
+	public class UserConfigurator {
+		private final MolosConfig mc;
+		private final String userName;
+		private String password = null;
+		private Set<String> roles;
+		
+		private UserConfigurator(MolosConfig mc, String userName) {
+			this.mc = mc;
+			this.userName = userName;
+		}
+		
+		public UserConfigurator password(String password) {
+			this.password = password;
+			return this;
+		}
+		
+		public UserConfigurator role(String role) {
+			if (roles == null) {
+				roles = new HashSet<>();
+			}
+			if (role != null && !role.isEmpty()) {
+				String[] splits = role.split(" ");
+				for (String split : splits) {
+					roles.add(split);
+				}
+			}
+			return this;
+		}
+
+		public MolosResult add() {
+			UserConfig uc = new UserConfig();
+			uc.setUserName(userName);
+			uc.setPassword(password);
+			uc.setRoles(roles);
+			return mc.addUser(uc);
+		}
+		
+		public void remove() {
+		}
+	}
 	
 	
 	private final String url;
@@ -81,7 +122,7 @@ public class MolosConfig {
 		this.url = url;
 		this.provider = provider;
 	}
-	
+
 	public static MolosConfig getConfigurator(String url) {
 		return new MolosConfig(url, null);
 	}
@@ -121,6 +162,10 @@ public class MolosConfig {
 	public List<ClientConfig> getClients() {
 		return Collections.EMPTY_LIST;
 	}
+	
+	public List<UserConfig> getUsers() {
+		return Collections.EMPTY_LIST;
+	}
 
 	private MolosResult addClient(ClientConfig clientConfig) {
 		Client client = getRsClient();
@@ -132,7 +177,21 @@ public class MolosConfig {
 		return result;
 	}
 	
+	public MolosResult addUser(UserConfig userConfig) {
+		Client client = getRsClient();
+		
+		Response response = client.target(url + "/mock-setup/user").request().post(Entity.json(userConfig));
+		
+		MolosResult result = response.readEntity(MolosResult.class);
+		
+		return result;
+	}
+	
 	public ClientConfigurator client(String clientId) {
 		return new ClientConfigurator(this, clientId);
+	}
+	
+	public UserConfigurator user(String userName) {
+		return new UserConfigurator(this, userName);
 	}
 }

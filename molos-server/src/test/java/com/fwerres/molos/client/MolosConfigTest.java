@@ -30,6 +30,7 @@ import com.fwerres.molos.Molos;
 import com.fwerres.molos.config.ClientConfig;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
+import com.fwerres.molos.config.UserConfig;
 import com.fwerres.testsupport.JaxRSHelper;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 
@@ -83,6 +84,23 @@ public class MolosConfigTest {
 		assertTrue(clients != null && clients.isEmpty());
 		
 		result = config.client("arbitraryClientId").clientSecret("arbitraryClientSecret").scope("openid").add();
+		
+		assertTrue(result.isSuccess());
+	}
+
+	@Test
+	public void testUser() {
+		MolosConfig config = MolosConfig.getConfigurator(wsUrl);
+		
+		MolosResult result = config.clear();
+		
+		assertTrue(result.isSuccess());
+		
+		List<UserConfig> users = config.getUsers();
+		
+		assertTrue(users != null && users.isEmpty());
+		
+		result = config.user("theuser").password("arbitraryPassword").add();
 		
 		assertTrue(result.isSuccess());
 	}

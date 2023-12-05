@@ -17,6 +17,7 @@ package com.fwerres.molos;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -46,12 +47,27 @@ import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
 
+import com.fwerres.testsupport.JsonHelper;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.oauth2.sdk.AuthorizationCode;
+import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
+import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.ResponseType;
 import com.nimbusds.oauth2.sdk.Scope;
+import com.nimbusds.oauth2.sdk.TokenErrorResponse;
+import com.nimbusds.oauth2.sdk.TokenRequest;
+import com.nimbusds.oauth2.sdk.TokenResponse;
+import com.nimbusds.oauth2.sdk.auth.ClientAuthentication;
+import com.nimbusds.oauth2.sdk.auth.ClientSecretJWT;
+import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.State;
+import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
 import com.nimbusds.openid.connect.sdk.Nonce;
+import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
+import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -104,6 +120,61 @@ public class OIDCLoginTest extends MolosTestbase {
 	
 	@Test
 	public void loginUser() throws Exception {
+		ClientID clientId = new ClientID(OIDC_CLIENT_ID);
+		URI callback = new URI("http://localhost:8001/callback");
+		
+		String code = getCodeFromFromOIDCFlow(clientId, callback);
+		
+//		retrieveTokenForCode(code, clientId, callback);
+	}
+	
+	private void retrieveTokenForCode(String codeRcvd, ClientID clientId, URI callback) throws Exception {
+		AuthorizationGrant authCodeGrant = new AuthorizationCodeGrant(new AuthorizationCode(codeRcvd), callback);
+		
+		// The token endpoint
+		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
+
+		// The credentials to authenticate the client at the token endpoint
+		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
+		ClientAuthentication clientAuth = new ClientSecretJWT(clientId, tokenEndpoint, JWSAlgorithm.HS256, clientSecret);
+
+		// The request scope for the token
+		Scope scope = new Scope("openid");
+
+		// Make the token request
+		TokenRequest tokenRequest = new TokenRequest(tokenEndpoint, clientAuth, authCodeGrant, scope);
+
+		TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenRequest.toHTTPRequest().send());
+
+		if (!tokenResponse.indicatesSuccess()) {
+		    // We got an error response...
+		    TokenErrorResponse errorResponse = tokenResponse.toErrorResponse();
+		    System.err.println(errorResponse.getErrorObject().getDescription());
+		    fail(errorResponse.getErrorObject().getDescription());
+		}
+
+		OIDCTokenResponse successResponse = (OIDCTokenResponse) tokenResponse.toSuccessResponse();
+
+		// Get the ID and access token, the server may also return a refresh token
+//		SignedJWT idToken = (SignedJWT) successResponse.getOIDCTokens().getIDToken();
+		AccessToken accessToken = successResponse.getOIDCTokens().getAccessToken();
+//		RefreshToken refreshToken = successResponse.getOIDCTokens().getRefreshToken();
+		
+		assertTrue(accessToken != null);
+		
+//		System.out.println("TokenType: " + accessToken.getIssuedTokenType().toString());
+		
+		SignedJWT jwt = SignedJWT.parse(accessToken.getValue());
+		
+		// Verify id token
+		
+		Map<String, Object> tokenValues = JsonHelper.parseJson(jwt.getPayload().toString(), true);
+		for (String tv : tokenValues.keySet()) {
+			System.out.println("IDToken: " + tv + " - " + tokenValues.get(tv));
+		}	
+	}
+
+	private String getCodeFromFromOIDCFlow(ClientID clientId, URI callback) throws Exception {
 		ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 		HttpServer server = HttpServerProvider.provider().createHttpServer(new InetSocketAddress("localhost", 8001), 0);
 		server.createContext("/callback", new  CallbackHandler());
@@ -112,10 +183,6 @@ public class OIDCLoginTest extends MolosTestbase {
 		
 		System.err.println("Started " + server.toString());
 
-		ClientID clientId = new ClientID(OIDC_CLIENT_ID);
-		
-		URI callback = new URI("http://localhost:8001/callback");
-		
 		State state = new State();
 		
 		Nonce nonce = new Nonce();
@@ -160,10 +227,30 @@ public class OIDCLoginTest extends MolosTestbase {
         WebElement submitButton = driver.findElement(By.name("login"));
         submitButton.click();
         
+//        logs = driver.manage().logs().get("performance");
         
-        assertTrue(driver.getCurrentUrl().startsWith(callback.toString()));
+//        showLogs(logs);
+        
+        assertTrue(callBackValues.containsKey("state"));
+        assertEquals(state.getValue(), callBackValues.get("state"));
+        assertTrue(callBackValues.containsKey("code"));
+        String code = callBackValues.get("code");
+        assertTrue(code != null && !code.isEmpty());
 
-        //state, session_state, code needed in callback call
+        Thread.sleep(500);
+        
+        driver.close();
+        
+        return code;
+	}
+
+	private void showLogs(LogEntries logs) {
+        for (Iterator<LogEntry> it = logs.iterator(); it.hasNext();) {
+            LogEntry entry = it.next();
+
+            String message = entry.getMessage();
+				System.out.println(message);
+        }
 	}
 
 	private int getHttpStatusForCall(LogEntries logs, String urlCalled) {

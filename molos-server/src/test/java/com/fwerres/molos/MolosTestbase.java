@@ -101,7 +101,14 @@ public class MolosTestbase {
 			System.out.println("Started server on " + wsUrl);
 			
 			MolosConfig config = MolosConfig.getConfigurator(wsUrl);
+			
 			MolosResult result = config.client(OIDC_CLIENT_ID).clientSecret(OIDC_CLIENT_SECRET).scope("openid").add();
+			for (String msg : result.getMessages()) {
+				System.err.println(msg);
+			}
+			assertTrue(result.isSuccess());
+			
+			result = config.user("theuser").password("secretPassword").add();
 			for (String msg : result.getMessages()) {
 				System.err.println(msg);
 			}

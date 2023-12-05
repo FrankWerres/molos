@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.fwerres.molos.config.ClientConfig;
+import com.fwerres.molos.config.UserConfig;
 import com.fwerres.molos.data.Token;
 
 import jakarta.json.bind.Jsonb;
@@ -34,7 +35,10 @@ public class State {
 //	private Jsonb jsonb = JsonbProvider.provider().create().build();
 
 	private final Map<String, ClientConfig> clients = new HashMap<>();
+	private final Map<String, UserConfig> users = new HashMap<>();
 	private final Map<String, Set<String>> tokens = new HashMap<>();
+	private final Map<String, Map<String, String>> attic = new HashMap<>();
+	private final Map<String, Map<String, String>> codes = new HashMap<>();
 
 	public synchronized boolean registerClient(ClientConfig cc, List<String> msgs) {
 		boolean failed = false;
@@ -62,8 +66,34 @@ public class State {
 		return true;
 	}
 
+	public synchronized boolean registerUser(UserConfig uc, List<String> msgs) {
+		boolean failed = false;
+		
+		if (uc.getUserName() == null || uc.getUserName().isEmpty()) {
+			msgs.add("InvalidArgument: no userName!");
+			failed = true;
+		}
+		if (uc.getPassword() == null || uc.getPassword().isEmpty()) {
+			msgs.add("InvalidArgument: password!");
+			failed = true;
+		}
+		if (failed) {
+			return false;
+		}
+		if (users.containsKey(uc.getUserName())) {
+			msgs.add("Replacing content for userName '" + uc.getUserName() + "'");
+		}
+		users.put(uc.getUserName(), uc);
+		
+		return true;
+	}
+
 	public synchronized ClientConfig getClient(String clientId) {
 		return clients.get(clientId);
+	}
+
+	public synchronized UserConfig getUser(String userName) {
+		return users.get(userName);
 	}
 	
 	public synchronized void registerToken(String clientId, Token token) {
@@ -75,5 +105,21 @@ public class State {
 	
 	public synchronized boolean isRegisteredToken(String clientId, String token) {
 		return tokens.containsKey(clientId) && tokens.get(clientId).contains(token);
+	}
+	
+	public synchronized void add2Attic(String id, Map<String, String> values) {
+		attic.put(id, values);
+	}
+	
+	public synchronized Map<String, String> getFromAttic(String id) {
+		return attic.get(id);
+	}
+
+	public synchronized void registerCode(String code, Map<String, String> values) {
+		codes.put(code, values);
+	}
+	
+	public synchronized Map<String, String> getCode(String code) {
+		return codes.get(code);
 	}
 }

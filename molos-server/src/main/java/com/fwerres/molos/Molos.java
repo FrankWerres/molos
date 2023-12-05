@@ -17,10 +17,26 @@ package com.fwerres.molos;
 
 
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.Reader;
 import java.io.StringReader;
+import java.io.StringWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.HashMap;
@@ -32,6 +48,7 @@ import java.util.UUID;
 import com.fwerres.molos.config.ClientConfig;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
+import com.fwerres.molos.config.UserConfig;
 import com.fwerres.molos.data.Token;
 import com.fwerres.molos.data.TokenIntrospection;
 import com.fwerres.molos.setup.KeyGenerator;
@@ -59,9 +76,12 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.UriInfo;
@@ -69,6 +89,8 @@ import jakarta.ws.rs.core.UriInfo;
 
 public class Molos {
 	
+	private static final String GRANT_TYPE = "grant_type";
+
 	private static final String SIGNED_JWT_WITH_CLIENT_SECRET = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
 
 	private static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
@@ -81,7 +103,7 @@ public class Molos {
 	private UriInfo uriInfo;
 	
 //	@Inject 
-	private final static State state = new State();
+	private final static State molosState = new State();
 	
 	public Molos() {
 		checkConfiguration();
@@ -135,11 +157,121 @@ public class Molos {
 	
 	@GET
 	@Path("/protocol/openid-connect/auth")
-	@Produces({ "application/html" })
-	public Response getAuthorization() {
-		return Response.ok().entity("magic value").build();
+	@Produces({ MediaType.TEXT_HTML })
+	public Reader getAuthorization(String request, 
+			@QueryParam("scope") String scope, 
+			@QueryParam("response_type") String response_type, 
+			@QueryParam("redirect_uri") String redirect_uri, 
+			@QueryParam("state") String state, 
+			@QueryParam("nonce") String nonce, 
+			@QueryParam("client_id") String client_id) {
+		Map<String, String> values = new HashMap<>();
+		
+		parseRequest(request, values);
+		addValueIfGiven(values, "scope", scope);
+		addValueIfGiven(values, "response_type", response_type);
+		addValueIfGiven(values, "redirect_uri", redirect_uri);
+		addValueIfGiven(values, "state", state); 
+		addValueIfGiven(values, "nonce", nonce); 
+		addValueIfGiven(values, "client_id", client_id);
+		
+		System.err.println("Request: " + values);
+
+		String form = null;
+
+		try (InputStream is = getClass().getResourceAsStream("/loginForm.html")) {
+			form = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		String uuid = UUID.randomUUID().toString();
+		String action = "action=\"" + uriInfo.getBaseUri().toString() + "/protocol/openid-connect/login/" + uuid + "\"";
+		form = form.replace("action=\"\"", action);
+		
+		molosState.add2Attic(uuid, values);
+		
+		System.err.println("Requested action: " + action);
+		
+		return new StringReader(form);
+    }
+	
+	private void addValueIfGiven(Map<String, String> values, String name, String value) {
+		if (value != null && !value.isEmpty()) {
+			values.put(name, value);
+		}
+	}
+
+	@POST
+	@Path("/protocol/openid-connect/login/{uuid}")
+	@Produces({ MediaType.TEXT_HTML })
+	public InputStream doLogin(String request, @PathParam("uuid") String uuid, @Context HttpHeaders headers) {
+		Map<String, String> values = new HashMap<>();
+		
+		parseRequest(request, headers, values);
+		
+		Map<String, String> fromAttic = molosState.getFromAttic(uuid);
+		
+		if (fromAttic == null) {
+			return failurePage("Unknown request ID: " + uuid);
+		}
+		String userName = values.get("username");
+		if (userName == null) {
+			return failurePage("No username given!");
+		}
+		String password = values.get("password");
+		if (password == null) {
+			return failurePage("No password given!");
+		}
+		
+		UserConfig userConfig = molosState.getUser(userName);
+		if (userConfig == null || !userConfig.getPassword().equals(password)) {
+			return failurePage("Unknown user/wrong password: " + userName + "/" + password);
+		}
+		
+		String state = fromAttic.get("state");
+		String code = UUID.randomUUID().toString();
+		
+		values.putAll(fromAttic);
+		molosState.registerCode(code, values);
+		
+		String redirect_uri = fromAttic.get("redirect_uri");
+		
+		try {
+			HttpClient client = HttpClient.newHttpClient();
+			String uri = redirect_uri + "?state=" + state + "&code=" + code;
+			HttpRequest callbackRequest = HttpRequest.newBuilder()
+					.uri(new URI(uri))
+					.build();
+			HttpResponse<String> callbackResponse = client.send(callbackRequest, BodyHandlers.ofString());
+			
+			if (callbackResponse.statusCode() != 200) {
+				return failurePage("Callback to " + uri + " returned status " + callbackResponse.statusCode());
+			}
+		} catch (Exception e) {
+			StringWriter sw = new StringWriter();
+			e.printStackTrace(new PrintWriter(sw));
+			return failurePage("Exception handling callback: " + e.getMessage() + "\n" + sw.toString());
+		}
+		
+//		System.err.println("Request: " + values);
+		return getClass().getResourceAsStream("/loginFormSuccess.html");
 	}
 	
+	private InputStream failurePage(String msg) {
+		String htmlpage = null;
+
+		try (InputStream is = getClass().getResourceAsStream("/loginFormFailure.html")) {
+			htmlpage = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		htmlpage = htmlpage.replace("message2return", msg);
+		
+		return new ByteArrayInputStream(htmlpage.getBytes());
+	}
+
 	@GET
 	@Path("/protocol/openid-connect/certs")
 	@Produces({ "application/json" })
@@ -164,7 +296,13 @@ public class Molos {
 		
 		System.err.println("Request: " + values);
 		
-		if (values.containsKey(CLIENT_ASSERTION_TYPE) && values.get(CLIENT_ASSERTION_TYPE).equals(SIGNED_JWT_WITH_CLIENT_SECRET)) {
+		if (values.containsKey(GRANT_TYPE) && "authorization_code".equals(values.get(GRANT_TYPE))) {
+			System.err.println("Handling authorization_code");
+		} else {
+			System.err.println("Handling grant_type " + values.get(GRANT_TYPE));
+		}
+		
+		if (values.get(GRANT_TYPE).equals("client_credentials") && values.containsKey(CLIENT_ASSERTION_TYPE) && values.get(CLIENT_ASSERTION_TYPE).equals(SIGNED_JWT_WITH_CLIENT_SECRET)) {
 			String clientId = "";
 			ClientConfig client = null;
 			boolean verificationSuccess = false;
@@ -175,7 +313,7 @@ public class Molos {
 				Map<String, Object> tokenMap = parseJson(assertion);
 				clientId = (String) tokenMap.get("iss");
 				
-				client = state.getClient(clientId);
+				client = molosState.getClient(clientId);
 				if (client != null) {
 					JWSVerifier verifier = new MACVerifier(client.getClientSecret());
 					verificationSuccess = jwt.verify(verifier);
@@ -186,7 +324,7 @@ public class Molos {
 			
 			if (verificationSuccess) {
 				Token token = new Token(uriInfo.getBaseUri(), client, (RSAKey) signKey);
-				state.registerToken(clientId, token);
+				molosState.registerToken(clientId, token);
 				return Response.ok().entity(token).build();
 			} else {
 				return Response.status(Status.FORBIDDEN).entity("Client authentication with client secret signed JWT failed: Signature on JWT token by client secret  failed validation").build();
@@ -197,10 +335,10 @@ public class Molos {
 		String clientId = values.get("client_id");
 		String clientSecret = values.get("client_secret");
 		
-		ClientConfig clientConfig = state.getClient(clientId);
+		ClientConfig clientConfig = molosState.getClient(clientId);
 		if (clientConfig != null && clientConfig.getClientSecret().equals(clientSecret) && clientConfig.getScopes().contains(values.get("scope"))) {
 			Token token = new Token(uriInfo.getBaseUri(), clientConfig, (RSAKey) signKey);
-			state.registerToken(clientId, token);
+			molosState.registerToken(clientId, token);
 			return Response.ok().entity(token).build();
 		} else {
 			return Response.serverError().build();
@@ -239,27 +377,33 @@ public class Molos {
 		return result;
 	}
 
+	private Map<String, String> parseRequest(String request, Map<String, String> values) {
+		return parseRequest(request, null, values);
+	}
+
 	private Map<String, String> parseRequest(String request, HttpHeaders headers, Map<String, String> values) {
-		String[] requestParts = request.split("&");
-		for (String requestPart : requestParts) {
-			String part = URLDecoder.decode(requestPart, Charset.defaultCharset());
-			String[] split = part.split("=");
-			values.put(split[0],  split[1]);
+		if (request != null && !request.isEmpty()) {
+			String[] requestParts = request.split("&");
+			for (String requestPart : requestParts) {
+				String part = URLDecoder.decode(requestPart, Charset.defaultCharset());
+				String[] split = part.split("=");
+				values.put(split[0],  split[1]);
+			}
+		}		
+		if (headers != null) {
+			List<String> authHeaders = headers.getRequestHeader(HttpHeaders.AUTHORIZATION);
+			if (authHeaders != null && !authHeaders.isEmpty()) {
+				String authorization64 = authHeaders.get(0).substring("Basic ".length());
+				String authorization = new String(Base64.getDecoder().decode(authorization64));
+				values.put("_authorization", authorization);
+				
+				String clientId = authorization.substring(0, authorization.indexOf(":"));
+				String clientSecret = authorization.substring(authorization.indexOf(":") + 1);
+				
+				values.put("client_id", clientId);
+				values.put("client_secret", clientSecret);
+			}
 		}
-		
-		List<String> authHeaders = headers.getRequestHeader(HttpHeaders.AUTHORIZATION);
-		if (authHeaders != null && !authHeaders.isEmpty()) {
-			String authorization64 = authHeaders.get(0).substring("Basic ".length());
-			String authorization = new String(Base64.getDecoder().decode(authorization64));
-			values.put("_authorization", authorization);
-			
-			String clientId = authorization.substring(0, authorization.indexOf(":"));
-			String clientSecret = authorization.substring(authorization.indexOf(":") + 1);
-			
-			values.put("client_id", clientId);
-			values.put("client_secret", clientSecret);
-		}
-		
 		return values;
 	}
 	
@@ -281,7 +425,7 @@ public class Molos {
 				Map<String, Object> tokenMap = parseJson(assertion);
 				clientId = (String) tokenMap.get("iss");
 				
-				ClientConfig client = state.getClient(clientId);
+				ClientConfig client = molosState.getClient(clientId);
 				if (client != null) {
 					JWSVerifier verifier = new MACVerifier(client.getClientSecret());
 					verificationSuccess = jwt.verify(verifier);
@@ -299,7 +443,7 @@ public class Molos {
 			
 			TokenIntrospection tokenIntrospection = new TokenIntrospection();
 	
-			tokenIntrospection.setActive(state.isRegisteredToken(clientId, token));
+			tokenIntrospection.setActive(molosState.isRegisteredToken(clientId, token));
 				
 			return Response.ok().entity(tokenIntrospection).build();
 		} else {
@@ -328,7 +472,21 @@ public class Molos {
 
 		System.out.println("Registering #" + cc.getClientId());
 		
-		result.setSuccess(state.registerClient(cc, result.getMessages()));
+		result.setSuccess(molosState.registerClient(cc, result.getMessages()));
+		
+		return Response.ok().entity(result).build();
+	}
+	
+	@POST
+	@Path("/mock-setup/user")
+	@Consumes({ "application/json" })
+	@Produces({ "application/json" })
+	public Response mockSetupUser(UserConfig uc) {
+		MolosResult result = new MolosResult();
+
+		System.out.println("Registering #" + uc.getUserName());
+		
+		result.setSuccess(molosState.registerUser(uc, result.getMessages()));
 		
 		return Response.ok().entity(result).build();
 	}
