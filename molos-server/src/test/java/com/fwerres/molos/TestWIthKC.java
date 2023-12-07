@@ -25,6 +25,7 @@ import com.sun.net.httpserver.spi.HttpServerProvider;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.HttpCookie;
@@ -79,6 +80,7 @@ import com.nimbusds.oauth2.sdk.ResourceOwnerPasswordCredentialsGrant;
 import com.nimbusds.oauth2.sdk.ResponseType;
 import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.TokenErrorResponse;
+import com.nimbusds.oauth2.sdk.TokenIntrospectionRequest;
 import com.nimbusds.oauth2.sdk.TokenRequest;
 import com.nimbusds.oauth2.sdk.TokenResponse;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthentication;
@@ -91,6 +93,7 @@ import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.Issuer;
 import com.nimbusds.oauth2.sdk.id.State;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
+import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.oauth2.sdk.token.TokenTypeURI;
 import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
 import com.nimbusds.openid.connect.sdk.Nonce;
@@ -100,30 +103,23 @@ import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 
+import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonValue;
+import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParserFactory;
+import jakarta.json.stream.JsonParser.Event;
 import jakarta.ws.rs.core.HttpHeaders;
 import net.minidev.json.JSONArray;
 
-public class MolosTestWIthKC {
+public class TestWIthKC extends KCTestbase {
 
-	private static final String OIDC_CLIENT_ID = "myClient";
-
-	private static final String OIDC_CLIENT_SECRET = "75ViJfL6vkDuNPx21SBZtcC09WKCAd7J";
-
-	private static String OIDC_TOKEN_URL = "/protocol/openid-connect/token";
-	
-	private static final String OIDC_TOKEN_INTROSPECT_URL = "/protocol/openid-connect/token/introspect";
-
-	private static String wsUrl = "http://localhost:8081/realms/myRealm";
-
-	private static final String OIDC_AUTHORIZATION_URL = "/protocol/openid-connect/auth";
-	
 	@Test
 	@Disabled
 	public void testRequestVerifyIDToken() throws Exception {
 		// Client side: retrieve accessToken with ClientSecretBasic grant
 		
-		ClientID clientID = new ClientID(OIDC_CLIENT_ID);
+		ClientID clientID = new ClientID(OIDC_CLIENT_ID_4CLIENT);
 
 		AuthorizationGrant clientGrant = new ClientCredentialsGrant();
 		
@@ -131,7 +127,7 @@ public class MolosTestWIthKC {
 		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
 
 		// The credentials to authenticate the client at the token endpoint
-		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
+		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET_4CLIENT);
 		ClientAuthentication clientAuth = new ClientSecretJWT(clientID, tokenEndpoint, JWSAlgorithm.HS256, clientSecret);
 
 		// The request scope for the token
@@ -212,11 +208,11 @@ public class MolosTestWIthKC {
 	
 	
 	@Test
-	@Disabled
+//	@Disabled
 	public void testRequestVerifyAccessToken() throws Exception {
 		// Client side: retrieve accessToken with ClientSecretBasic grant
 		
-		ClientID clientID = new ClientID(OIDC_CLIENT_ID);
+		ClientID clientID = new ClientID(OIDC_CLIENT_ID_4CLIENT);
 
 		AuthorizationGrant clientGrant = new ClientCredentialsGrant();
 		
@@ -224,7 +220,7 @@ public class MolosTestWIthKC {
 		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
 
 		// The credentials to authenticate the client at the token endpoint
-		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
+		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET_4CLIENT);
 		ClientAuthentication clientAuth = new ClientSecretJWT(clientID, tokenEndpoint, JWSAlgorithm.HS256, clientSecret);
 
 		// The request scope for the token
@@ -301,15 +297,28 @@ public class MolosTestWIthKC {
 		
 		String[] groups = claimsSet.getStringArrayClaim("groups");
 		assertTrue(groups != null && groups.length > 0, "Claim 'groups' missing or empty!");
-	}
+		
+		// Verify access with IP call
+		assertTrue(validateTokenWithIntrospection(
+				// The credentials to authenticate the client at the token endpoint
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID_4CLIENT), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET_4CLIENT)), 
+				// The token
+				tokenString));
 
+		// Verify access with IP call with different clientId
+		assertTrue(validateTokenWithIntrospection(
+				// The credentials to authenticate the client at the token endpoint
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID_4SERVER), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET_4SERVER)), 
+				// The token
+				tokenString));
+	}
 	
 	@Test
 	@Disabled
 	public void testRequestVerifyAccessToken4User() throws Exception {
 		// Client side: retrieve accessToken with ClientSecretBasic grant
 		
-		ClientID clientID = new ClientID(OIDC_CLIENT_ID);
+		ClientID clientID = new ClientID(OIDC_CLIENT_ID_4CLIENT);
 
 		AuthorizationGrant clientGrant = new ResourceOwnerPasswordCredentialsGrant("theuser", new Secret("secretPassword"));
 		
@@ -317,7 +326,7 @@ public class MolosTestWIthKC {
 		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
 
 		// The credentials to authenticate the client at the token endpoint
-		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
+		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET_4CLIENT);
 		ClientAuthentication clientAuth = new ClientSecretJWT(clientID, tokenEndpoint, JWSAlgorithm.HS256, clientSecret);
 
 		// The request scope for the token
@@ -427,6 +436,7 @@ public class MolosTestWIthKC {
 	private String stateRcvd = null;
 	
 	@Test
+	@Disabled
 	public void loginUser() throws Exception {
 		ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 		HttpServer server = HttpServerProvider.provider().createHttpServer(new InetSocketAddress("localhost", 8001), 0);
@@ -436,7 +446,7 @@ public class MolosTestWIthKC {
 		
 		System.err.println("Started " + server.toString());
 
-		ClientID clientId = new ClientID(OIDC_CLIENT_ID);
+		ClientID clientId = new ClientID(OIDC_CLIENT_ID_4CLIENT);
 		
 		URI callback = new URI("http://localhost:8001/callback");
 		
@@ -498,7 +508,7 @@ public class MolosTestWIthKC {
 		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
 
 		// The credentials to authenticate the client at the token endpoint
-		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
+		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET_4CLIENT);
 		ClientAuthentication clientAuth = new ClientSecretJWT(clientId, tokenEndpoint, JWSAlgorithm.HS256, clientSecret);
 
 		// The request scope for the token
@@ -536,11 +546,5 @@ public class MolosTestWIthKC {
 			System.out.println("IDToken: " + tv + " - " + tokenValues.get(tv));
 		}
         
-	}
-	
-	private String getActionFromHtmlForm(String htmlForm) {
-		String form = htmlForm.substring(htmlForm.indexOf("<form"));
-		int offset = form.indexOf("action=");
-		return form.substring(offset + 8, form.indexOf("\"", offset + 8));
 	}
 }

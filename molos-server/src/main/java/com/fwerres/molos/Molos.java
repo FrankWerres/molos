@@ -324,7 +324,7 @@ public class Molos {
 			
 			if (verificationSuccess) {
 				Token token = new Token(uriInfo.getBaseUri(), client, (RSAKey) signKey);
-				molosState.registerToken(clientId, token);
+				molosState.registerToken(token);
 				return Response.ok().entity(token).build();
 			} else {
 				return Response.status(Status.FORBIDDEN).entity("Client authentication with client secret signed JWT failed: Signature on JWT token by client secret  failed validation").build();
@@ -338,7 +338,7 @@ public class Molos {
 		ClientConfig clientConfig = molosState.getClient(clientId);
 		if (clientConfig != null && clientConfig.getClientSecret().equals(clientSecret) && clientConfig.getScopes().contains(values.get("scope"))) {
 			Token token = new Token(uriInfo.getBaseUri(), clientConfig, (RSAKey) signKey);
-			molosState.registerToken(clientId, token);
+			molosState.registerToken(token);
 			return Response.ok().entity(token).build();
 		} else {
 			return Response.serverError().build();
@@ -416,6 +416,7 @@ public class Molos {
 		parseRequest(request, headers, values);
 		
 		String clientId = "";
+		boolean legitimateAccess = false;
 		boolean verificationSuccess = false;
 		if (values.containsKey(CLIENT_ASSERTION_TYPE) && values.get(CLIENT_ASSERTION_TYPE).equals(SIGNED_JWT_WITH_CLIENT_SECRET)) {
 			try {
@@ -428,26 +429,26 @@ public class Molos {
 				ClientConfig client = molosState.getClient(clientId);
 				if (client != null) {
 					JWSVerifier verifier = new MACVerifier(client.getClientSecret());
-					verificationSuccess = jwt.verify(verifier);
+					legitimateAccess = jwt.verify(verifier);
 				}
 			} catch (JOSEException | ParseException e) {
 				e.printStackTrace();
 			}
 		} else {
 			clientId = values.get("client_id");
-			verificationSuccess = true;
+			legitimateAccess = true;
 		}
 
-		if (verificationSuccess) {
+		if (legitimateAccess) {
 			String token = values.get("token");
 			
 			TokenIntrospection tokenIntrospection = new TokenIntrospection();
 	
-			tokenIntrospection.setActive(molosState.isRegisteredToken(clientId, token));
+			tokenIntrospection.setActive(molosState.isRegisteredToken(token));
 				
 			return Response.ok().entity(tokenIntrospection).build();
 		} else {
-			return Response.status(Status.FORBIDDEN).entity("Client authentication with client secret signed JWT failed: Signature on JWT token by client secret  failed validation").build();
+			return Response.status(Status.FORBIDDEN).entity("Client authentication with client secret signed JWT failed: Signature on JWT token by client secret failed validation").build();
 		}
 	}
 

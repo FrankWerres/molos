@@ -36,7 +36,7 @@ public class State {
 
 	private final Map<String, ClientConfig> clients = new HashMap<>();
 	private final Map<String, UserConfig> users = new HashMap<>();
-	private final Map<String, Set<String>> tokens = new HashMap<>();
+	private final Set<String> tokens = new HashSet<>();
 	private final Map<String, Map<String, String>> attic = new HashMap<>();
 	private final Map<String, Map<String, String>> codes = new HashMap<>();
 
@@ -96,15 +96,12 @@ public class State {
 		return users.get(userName);
 	}
 	
-	public synchronized void registerToken(String clientId, Token token) {
-		if (!tokens.containsKey(clientId)) {
-			tokens.put(clientId, new HashSet<>());
-		}
-		tokens.get(clientId).add(token.getAccess_token());
+	public synchronized void registerToken(Token token) {
+		tokens.add(token.getAccess_token());
 	}
 	
-	public synchronized boolean isRegisteredToken(String clientId, String token) {
-		return tokens.containsKey(clientId) && tokens.get(clientId).contains(token);
+	public synchronized boolean isRegisteredToken(String token) {
+		return tokens.contains(token);
 	}
 	
 	public synchronized void add2Attic(String id, Map<String, String> values) {

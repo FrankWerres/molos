@@ -49,7 +49,7 @@ public class OAuthClientTest extends MolosTestbase {
 		// Client side: retrieve accessToken with ClientSecretBasic authorization
 		String tokenValue = retrieveAccessToken(
 				// The credentials to authenticate the client at the token endpoint
-				new ClientSecretBasic(new ClientID(OIDC_CLIENT_ID), new Secret(OIDC_CLIENT_SECRET)));
+				new ClientSecretBasic(new ClientID(OIDC_CLIENT_ID_4CLIENT), new Secret(OIDC_CLIENT_SECRET_4CLIENT)));
 		
 		assertTrue(tokenValue != null && !tokenValue.isBlank());
 		
@@ -58,7 +58,7 @@ public class OAuthClientTest extends MolosTestbase {
 		// Server side: have server verify accessToken for ClientSecretBasic authorization
 		assertTrue(validateTokenWithIntrospection(
 				// The credentials to authenticate the client at the token endpoint
-				new ClientSecretBasic(new ClientID(OIDC_CLIENT_ID), new Secret(OIDC_CLIENT_SECRET)), 
+				new ClientSecretBasic(new ClientID(OIDC_CLIENT_ID_4CLIENT), new Secret(OIDC_CLIENT_SECRET_4CLIENT)), 
 				// The token
 				tokenValue));
 	}
@@ -68,7 +68,7 @@ public class OAuthClientTest extends MolosTestbase {
 		// Client side: retrieve accessToken with ClientSecretPost authorization
 		String tokenValue = retrieveAccessToken(
 				// The credentials to authenticate the client at the token endpoint
-				new ClientSecretPost(new ClientID(OIDC_CLIENT_ID), new Secret(OIDC_CLIENT_SECRET)));
+				new ClientSecretPost(new ClientID(OIDC_CLIENT_ID_4CLIENT), new Secret(OIDC_CLIENT_SECRET_4CLIENT)));
 		
 		assertTrue(tokenValue != null && !tokenValue.isBlank());
 		
@@ -77,7 +77,7 @@ public class OAuthClientTest extends MolosTestbase {
 		// Server side: have server verify accessToken for ClientSecretPost authorization
 		assertTrue(validateTokenWithIntrospection(
 				// The credentials to authenticate the client at the token endpoint
-				new ClientSecretPost(new ClientID(OIDC_CLIENT_ID), new Secret(OIDC_CLIENT_SECRET)), 
+				new ClientSecretPost(new ClientID(OIDC_CLIENT_ID_4CLIENT), new Secret(OIDC_CLIENT_SECRET_4CLIENT)), 
 				// The token
 				tokenValue));
 	}
@@ -88,7 +88,7 @@ public class OAuthClientTest extends MolosTestbase {
 		// Client side: retrieve accessToken with ClientSecretJWT authorization
 		String tokenValue = retrieveAccessToken(
 				// The credentials to authenticate the client at the token endpoint
-				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET)));
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID_4CLIENT), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET_4CLIENT)));
 		
 		assertTrue(tokenValue != null && !tokenValue.isBlank());
 		
@@ -97,7 +97,14 @@ public class OAuthClientTest extends MolosTestbase {
 		// Server side: have server verify accessToken for ClientSecretJWT authorization
 		assertTrue(validateTokenWithIntrospection(
 				// The credentials to authenticate the client at the token endpoint
-				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET)), 
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID_4CLIENT), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET_4CLIENT)), 
+				// The token
+				tokenValue));
+		
+		// Server side: have server verify accessToken for ClientSecretJWT authorization
+		assertTrue(validateTokenWithIntrospection(
+				// The credentials to authenticate the client at the token endpoint
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID_4SERVER), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET_4SERVER)), 
 				// The token
 				tokenValue));
 	}
@@ -108,7 +115,7 @@ public class OAuthClientTest extends MolosTestbase {
 		
 		// Client side: retrieve IDToken with ClientSecretJWT grant
 		String tokenValue = retrieveIDToken(
-				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET)));
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID_4CLIENT), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET_4CLIENT)));
 		
 		assertTrue(tokenValue != null && !tokenValue.isBlank());
 		
@@ -119,40 +126,6 @@ public class OAuthClientTest extends MolosTestbase {
 		
 		// Server side: verify token signature
 		assertTrue(validateIDTokenLocally(tokenValue));
-	}
-
-	private String retrieveAccessToken(ClientAuthentication clientAuth) throws Exception {
-		return retrieveTokens(clientAuth).getAccessToken().getValue();
-	}
-
-	private String retrieveIDToken(ClientAuthentication clientAuth) throws Exception {
-		return retrieveTokens(clientAuth).getIDToken().serialize();
-	}
-
-	private OIDCTokens retrieveTokens(ClientAuthentication clientAuth) throws Exception {
-		AuthorizationGrant clientGrant = new ClientCredentialsGrant();
-		
-		// The token endpoint
-		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
-
-		// The request scope for the token
-		Scope scope = new Scope("openid");
-
-		// Make the token request
-		TokenRequest tokenRequest = new TokenRequest(tokenEndpoint, clientAuth, clientGrant, scope);
-
-		TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenRequest.toHTTPRequest().send());
-
-		if (! tokenResponse.indicatesSuccess()) {
-		    // We got an error response...
-		    TokenErrorResponse errorResponse = tokenResponse.toErrorResponse();
-		    System.err.println(errorResponse.getErrorObject().getDescription());
-		    fail(errorResponse.getErrorObject().getDescription());
-		}
-
-		OIDCTokenResponse successResponse = (OIDCTokenResponse) tokenResponse.toSuccessResponse();
-		
-		return successResponse.getOIDCTokens();
 	}
 
 }

@@ -120,7 +120,7 @@ public class OIDCLoginTest extends MolosTestbase {
 	
 	@Test
 	public void loginUser() throws Exception {
-		ClientID clientId = new ClientID(OIDC_CLIENT_ID);
+		ClientID clientId = new ClientID(OIDC_CLIENT_ID_4CLIENT);
 		URI callback = new URI("http://localhost:8001/callback");
 		
 		String code = getCodeFromFromOIDCFlow(clientId, callback);
@@ -135,7 +135,7 @@ public class OIDCLoginTest extends MolosTestbase {
 		URI tokenEndpoint = new URI(wsUrl + OIDC_TOKEN_URL);
 
 		// The credentials to authenticate the client at the token endpoint
-		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET);
+		Secret clientSecret = new Secret(OIDC_CLIENT_SECRET_4CLIENT);
 		ClientAuthentication clientAuth = new ClientSecretJWT(clientId, tokenEndpoint, JWSAlgorithm.HS256, clientSecret);
 
 		// The request scope for the token

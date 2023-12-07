@@ -73,19 +73,7 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 import jakarta.json.stream.JsonParser.Event;
 
-public class MolosTestbase {
-
-	protected static final String OIDC_CLIENT_ID = "OIDC_CLIENT_ID";
-
-	protected static final String OIDC_CLIENT_SECRET = "OIDC_CLIENT_SECRET_IS2SHORT_OIDC_CLIENT_SECRET";
-
-	protected static final String OIDC_TOKEN_URL = "/protocol/openid-connect/token";
-
-	protected static final String OIDC_JWKS_URI = "/protocol/openid-connect/certs";
-	
-	protected static final String OIDC_TOKEN_INTROSPECT_URL = "/protocol/openid-connect/token/introspect";
-	
-	protected static final String OIDC_AUTHORIZATION_URL = "/protocol/openid-connect/auth";
+public abstract class MolosTestbase extends IPTestbase {
 
 	protected static JaxRSHelper jaxrs = new JaxRSHelper();
 	
@@ -102,12 +90,19 @@ public class MolosTestbase {
 			
 			MolosConfig config = MolosConfig.getConfigurator(wsUrl);
 			
-			MolosResult result = config.client(OIDC_CLIENT_ID).clientSecret(OIDC_CLIENT_SECRET).scope("openid").add();
+			// FIXME Scope 'openid' not necessary with real KeyCloak
+			MolosResult result = config.client(OIDC_CLIENT_ID_4CLIENT).clientSecret(OIDC_CLIENT_SECRET_4CLIENT).scope("openid").add();
 			for (String msg : result.getMessages()) {
 				System.err.println(msg);
 			}
 			assertTrue(result.isSuccess());
-			
+
+			result = config.client(OIDC_CLIENT_ID_4SERVER).clientSecret(OIDC_CLIENT_SECRET_4SERVER).scope("openid").add();
+			for (String msg : result.getMessages()) {
+				System.err.println(msg);
+			}
+			assertTrue(result.isSuccess());
+
 			result = config.user("theuser").password("secretPassword").add();
 			for (String msg : result.getMessages()) {
 				System.err.println(msg);
@@ -133,64 +128,9 @@ public class MolosTestbase {
 //		System.out.println("Terminating.");
 //	}
 	
-
-	protected boolean validateTokenWithIntrospection(ClientAuthentication clientAuth, String tokenString) throws Exception {
-		
-		URI introspectionEndpoint = new URI(wsUrl + OIDC_TOKEN_INTROSPECT_URL);
-
-		// Token to validate
-		AccessToken inspectedToken = new BearerAccessToken(tokenString);
-
-		// Compose the introspection call
-		HTTPRequest httpRequest = new TokenIntrospectionRequest(
-		    introspectionEndpoint,
-		    clientAuth,
-		    inspectedToken)
-		    .toHTTPRequest();
-
-		// Make the introspection call
-		HTTPResponse httpResponse = null;
-		try {
-			httpResponse = httpRequest.send();
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail("Got exception!");
-		}
-		String body = httpResponse.getBody();
-		System.out.println(body);
-
-		return responseContainsActiveTrue(body);
+	@Override
+	protected String getBaseUrl() {
+		return wsUrl;
 	}
 
-	protected boolean validateIDTokenLocally(String tokenString) throws Exception {
-		SignedJWT jwt = SignedJWT.parse(tokenString);
-		Map<String, Object> tokenValues = JsonHelper.parseJson(jwt.getPayload().toString(), true);
-		for (String tv : tokenValues.keySet()) {
-			System.out.println("IDToken: " + tv + " - " + tokenValues.get(tv));
-		}
-		Issuer iss = new Issuer((String) tokenValues.get("iss"));
-		ClientID clientId = new ClientID((String) tokenValues.get("aud"));
-		IDTokenValidator srvValidator = new IDTokenValidator(iss, clientId, JWSAlgorithm.RS256, new URL(wsUrl + OIDC_JWKS_URI));
-
-		IDTokenClaimsSet claimsSet = srvValidator.validate(jwt, null);
-		
-		System.out.println("claimsSet: " + claimsSet);
-		
-		return true;
-	}
-
-	
-	protected boolean responseContainsActiveTrue(String body) {
-		JsonValue jsonValue = null;
-		JsonParserFactory parserFactory = Json.createParserFactory(null);
-		JsonParser parser = parserFactory.createParser(new StringReader(body));
-		
-		if (parser.hasNext()) {
-			Event next = parser.next();
-			jsonValue = parser.getObjectStream().filter(e->e.getKey().equals("active"))
-        		.map(e->e.getValue()).findFirst().get();
-		}
-		return JsonValue.TRUE.equals(jsonValue);
-	}
-	
 }
