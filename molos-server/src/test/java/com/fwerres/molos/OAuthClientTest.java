@@ -121,6 +121,24 @@ public class OAuthClientTest extends MolosTestbase {
 		
 		System.out.println("Got token: " + tokenValue);
 		
+		SignedJWT accessToken = SignedJWT.parse(tokenValue);
+		assertTrue(accessToken != null);
+		
+		// Server side: verify token signature
+		assertTrue(validateAccessTokenLocally(tokenValue));
+	}
+	
+	@Test
+	public void testRequestVerifyAccessToken() throws Exception {
+		
+		// Client side: retrieve AccessToken with ClientSecretJWT grant
+		String tokenValue = retrieveAccessToken(
+				new ClientSecretJWT(new ClientID(OIDC_CLIENT_ID_4CLIENT), new URI(wsUrl + OIDC_TOKEN_URL), JWSAlgorithm.HS256, new Secret(OIDC_CLIENT_SECRET_4CLIENT)));
+		
+		assertTrue(tokenValue != null && !tokenValue.isBlank());
+		
+		System.out.println("Got token: " + tokenValue);
+		
 		SignedJWT idToken = SignedJWT.parse(tokenValue);
 		assertTrue(idToken != null);
 		

@@ -179,7 +179,7 @@ public class ConsumeSecuredAppIT {
 	
 
 	private String retrieveIDToken(ClientAuthentication clientAuth) throws Exception {
-		return retrieveTokens(clientAuth).getIDToken().serialize();
+		return retrieveTokens(clientAuth).getAccessToken().getValue();
 	}
 
 	private OIDCTokens retrieveTokens(ClientAuthentication clientAuth) throws Exception {

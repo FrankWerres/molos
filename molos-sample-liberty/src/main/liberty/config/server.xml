@@ -1,12 +1,40 @@
 <server description="Intro REST Guide Liberty server">
-  <featureManager>
-      <feature>restfulWS-3.1</feature>
-      <feature>jsonb-3.0</feature>
-      <feature>mpJwt-2.1</feature>
-  </featureManager>
+	<featureManager>
+		<feature>restfulWS-3.1</feature>
+		<feature>jsonb-3.0</feature>
+		<feature>mpJwt-2.1</feature>
+		<feature>xmlWS-4.0</feature>
+		<!-- 
+		<feature>adminCenter-1.0</feature>
+		-->
+	</featureManager>
 
-  <httpEndpoint httpPort="${default.http.port}" httpsPort="${default.https.port}"
-                id="defaultHttpEndpoint" host="*" />
-  
-  <webApplication location="molos-sample-liberty.war" contextRoot="${app.context.root}"/>
+	<!-- Required by adminCenter -->
+	<!-- 
+	<basicRegistry id="basic">
+		<user name="admin" password="adminpwd" />
+		<user name="reader" password="readerpwd" />
+	</basicRegistry>
+	<administrator-role>
+		<user>admin</user>
+	</administrator-role>
+	<reader-role>
+		<user>reader</user>
+	</reader-role>
+	-->
+	<logging traceSpecification="com.ibm.ws.jaxws.*=all:org.apache.cxf.*=all"/>
+	
+	<httpAccessLogging id="accessLogging"/>
+
+	<httpEndpoint httpPort="${default.http.port}"
+		httpsPort="${default.https.port}"
+		id="defaultHttpEndpoint" host="*"
+		accessLoggingRef="accessLogging" />
+
+	<webApplication location="molos-sample-liberty.war"
+		contextRoot="${app.context.root}" />
+
+    <!-- 
+	<webApplication location="molos-sample-webservice.war" />
+    -->
 </server>

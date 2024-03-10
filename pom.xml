@@ -1,11 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 	<modelVersion>4.0.0</modelVersion>
+
 	<groupId>com.fwerres.molos</groupId>
 	<artifactId>molos</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+
 	<packaging>pom</packaging>
+
 	<properties>
 		<maven.compiler.target>17</maven.compiler.target>
 		<maven.compiler.source>17</maven.compiler.source>
@@ -13,12 +18,19 @@
 		<glassfish.jersey.version>3.1.3</glassfish.jersey.version>
 		<jboss.resteasy.version>6.2.3.Final</jboss.resteasy.version>
 	</properties>
+
 	<modules>
 		<module>molos-server</module>
 		<module>molos-sample-liberty</module>
 		<module>molos-testsupport</module>
+		<module>molos-sample-jaxgen</module>
+		<module>molos-sample-webservice</module>
+		<module>molos-maven-plugin</module>
+		<module>molos-plugin-test</module>
 	</modules>
+
 	<dependencyManagement>
+
 		<dependencies>
 			<!-- Provided dependencies -->
 			<dependency>
@@ -27,6 +39,7 @@
 				<version>10.0.0</version>
 				<scope>provided</scope>
 			</dependency>
+
 			<dependency>
 				<groupId>org.eclipse.microprofile</groupId>
 				<artifactId>microprofile</artifactId>
@@ -41,12 +54,14 @@
 				<version>${jboss.resteasy.version}</version>
 				<scope>test</scope>
 			</dependency>
+
 			<dependency>
 				<groupId>org.jboss.resteasy</groupId>
 				<artifactId>resteasy-json-binding-provider</artifactId>
 				<version>${jboss.resteasy.version}</version>
 				<scope>test</scope>
 			</dependency>
+
 			<dependency>
 				<groupId>org.glassfish</groupId>
 				<artifactId>jakarta.json</artifactId>
@@ -68,6 +83,7 @@
 				<artifactId>jakarta.json.bind-api</artifactId>
 				<version>3.0.0</version>
 			</dependency>
+
 			<!-- Runtime for this: -->
 			<!-- https://mvnrepository.com/artifact/org.eclipse/yasson -->
 			<dependency>
@@ -75,6 +91,7 @@
 				<artifactId>yasson</artifactId>
 				<version>3.0.3</version>
 			</dependency>
+
 			<!--
 			https://mvnrepository.com/artifact/com.fasterxml.jackson.jakarta.rs/jackson-jakarta-rs-json-provider -->
 			<dependency>
@@ -91,6 +108,7 @@
 				<artifactId>jakarta.json-api</artifactId>
 				<version>2.1.3</version>
 			</dependency>
+
 			<!-- Runtime for this -->
 			<!-- https://mvnrepository.com/artifact/org.eclipse.parsson/parsson -->
 			<dependency>
@@ -105,6 +123,7 @@
 				<artifactId>jakarta.ws.rs-api</artifactId>
 				<version>3.1.0</version>
 			</dependency>
+
 			<!-- Runtime for this: -->
 			<!--
 			https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-client -->
@@ -114,6 +133,7 @@
 				<version>${glassfish.jersey.version}</version>
 				<scope>test</scope>
 			</dependency>
+
 			<dependency>
 				<groupId>org.glassfish.jersey.security</groupId>
 				<artifactId>oauth2-client</artifactId>
@@ -137,6 +157,7 @@
 				<artifactId>cxf-core</artifactId>
 				<version>${apache.cxf.version}</version>
 			</dependency>
+
 			<!--
 			https://mvnrepository.com/artifact/org.apache.cxf/cxf-rt-frontend-jaxrs -->
 			<dependency>
@@ -144,6 +165,7 @@
 				<artifactId>cxf-rt-frontend-jaxrs</artifactId>
 				<version>${apache.cxf.version}</version>
 			</dependency>
+
 			<!--
 			https://mvnrepository.com/artifact/org.apache.cxf/cxf-rt-rs-client -->
 			<dependency>
@@ -151,6 +173,7 @@
 				<artifactId>cxf-rt-rs-client</artifactId>
 				<version>${apache.cxf.version}</version>
 			</dependency>
+
 			<!--
 			https://mvnrepository.com/artifact/org.apache.cxf/cxf-rt-rs-extension-providers -->
 			<dependency>
@@ -158,6 +181,7 @@
 				<artifactId>cxf-rt-rs-extension-providers</artifactId>
 				<version>${apache.cxf.version}</version>
 			</dependency>
+
 			<!--
 			https://mvnrepository.com/artifact/org.apache.cxf/cxf-rt-transports-http-jetty -->
 			<dependency>
@@ -173,6 +197,7 @@
 				<version>11.6</version>
 				<scope>runtime</scope>
 			</dependency>
+
 			<!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
 			<dependency>
 				<groupId>com.nimbusds</groupId>
@@ -188,26 +213,75 @@
 				<version>5.10.1</version>
 				<scope>test</scope>
 			</dependency>
+
 			<dependency>
 				<groupId>org.junit.jupiter</groupId>
 				<artifactId>junit-jupiter</artifactId>
 				<version>5.10.1</version>
 				<scope>test</scope>
 			</dependency>
+
 			<!--
 			https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-java -->
 			<dependency>
 				<groupId>org.seleniumhq.selenium</groupId>
 				<artifactId>selenium-java</artifactId>
-				<version>4.15.0</version>
+				<version>4.18.1</version>
 			</dependency>
+
 			<!--
 			https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-chrome-driver -->
 			<dependency>
 				<groupId>org.seleniumhq.selenium</groupId>
 				<artifactId>selenium-chrome-driver</artifactId>
-				<version>4.15.0</version>
+				<version>4.18.1</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<artifactId>maven-source-plugin</artifactId>
+					<executions>
+						<execution>
+							<id>package-sources</id>
+							<goals>
+								<goal>jar-no-fork</goal>
+							</goals>
+						</execution>
+						<execution>
+							<id>package-test-sources</id>
+							<goals>
+								<goal>test-jar-no-fork</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+
+				<plugin>
+					<artifactId>maven-javadoc-plugin</artifactId>
+					<executions>
+						<execution>
+							<id>generate-package-javadocs</id>
+							<goals>
+								<goal>jar</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+
+		<plugins>
+			<plugin>
+				<artifactId>maven-source-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-javadoc-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
 </project>

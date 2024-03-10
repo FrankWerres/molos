@@ -1,0 +1,79 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.fwerres.molos</groupId>
+		<artifactId>molos</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+	<artifactId>molos-sample-jaxgen</artifactId>
+
+	<build>
+		<plugins>
+			<!-- Delete generate sources -->
+			<plugin>
+				<artifactId>maven-clean-plugin</artifactId>
+				<configuration>
+					<filesets>
+						<fileset>
+							<directory>src/generated/java</directory>
+							<includes>
+								<include>**/*.java</include>
+							</includes>
+						</fileset>
+					</filesets>
+				</configuration>
+			</plugin>
+
+			<!-- Generate web-service clients -->
+			<plugin>
+				<groupId>com.sun.xml.ws</groupId>
+				<artifactId>jaxws-maven-plugin</artifactId>
+				<executions>
+
+					<execution>
+						<id>webService</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>wsimport</goal>
+						</goals>
+						<configuration>
+							<encoding>UTF-8</encoding>
+							<wsdlDirectory>/wsdl</wsdlDirectory>
+							<wsdlFiles>
+								<wsdlFile>${project.basedir}/src/jaxws/WebService.wsdl</wsdlFile>
+							</wsdlFiles>
+							<wsdlLocation>/wsdl/WebService.wsdl</wsdlLocation>
+							<inlineSchemas>true</inlineSchemas>
+							<bindingFiles>
+								<bindingFile>bindings.xjb</bindingFile>
+								<!--
+								<bindingFile>${project.build.directory}/bindings/Bindings_TypeMapping.xml</bindingFile>
+-->
+							</bindingFiles>
+							<sourceDestDir>src/generated/java</sourceDestDir>
+							<verbose>true</verbose>
+							<extension>true</extension>
+							<xdebug>false</xdebug>
+							<xnocompile>true</xnocompile>
+							<keep>true</keep>
+							<!--
+							<staleFile>${project.build.directory}/jaxws/stale/wsdl.webService.done</staleFile>
+              -->
+						</configuration>
+					</execution>
+
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<dependencies>
+		<dependency>
+			<groupId>jakarta.xml.ws</groupId>
+			<artifactId>jakarta.xml.ws-api</artifactId>
+			<version>4.0.1</version>
+		</dependency>
+	</dependencies>
+</project>

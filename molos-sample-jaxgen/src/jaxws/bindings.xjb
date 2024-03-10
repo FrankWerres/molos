@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jaxws:bindings version="3.0"
+	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+	xmlns:jaxws="https://jakarta.ee/xml/ns/jaxws" 
+	xmlns:jaxb="https://jakarta.ee/xml/ns/jaxb" 
+	xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<jaxws:enableWrapperStyle>true</jaxws:enableWrapperStyle>
+	<jaxws:enableAsyncMapping>false</jaxws:enableAsyncMapping>
+
+	<!-- bindings for external service -->
+	<jaxws:package name="com.fwerres.sample.webservice" />
+
+	<jaxws:bindings
+		node="wsdl:definitions/wsdl:types/xs:schema[@targetNamespace='http://www.example.org/WebService/']">
+		<jaxb:schemaBindings>
+			<jaxb:package name="com.fwerres.sample.webservice" />
+		</jaxb:schemaBindings>
+	</jaxws:bindings>
+</jaxws:bindings>

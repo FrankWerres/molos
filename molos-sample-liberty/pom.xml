@@ -20,11 +20,73 @@
 		<liberty.var.app.context.root>LibertyProject</liberty.var.app.context.root>
 	</properties>
 
+	<build>
+		<finalName>${project.artifactId}</finalName>
+		<plugins>
+			<!-- Enable liberty-maven plugin -->
+			<plugin>
+				<groupId>io.openliberty.tools</groupId>
+				<artifactId>liberty-maven-plugin</artifactId>
+				<version>3.9</version>
+				<!-- enables packaging 'liberty-assembly' -->
+				<extensions>true</extensions>
+				<executions>
+					<execution>
+						<id>package-server</id>
+						<phase>package</phase>
+						<goals>
+							<goal>create</goal>
+							<goal>install-feature</goal>
+							<goal>deploy</goal>
+							<goal>package</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>target/wlp-package</outputDirectory>
+							<deployPackages>dependencies</deployPackages>
+							<stripVersion>true</stripVersion>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>3.3.2</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.0.0</version>
+			</plugin>
+			<!-- Plugin to run functional tests -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>3.0.0</version>
+				<configuration>
+					<systemPropertyVariables>
+						<http.port>${liberty.var.default.http.port}</http.port>
+						<context.root>/dev</context.root>
+					</systemPropertyVariables>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.fwerres.molos</groupId>
 			<artifactId>molos-server</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+
+		<!-- 
+		-->
+		<dependency>
+			<groupId>com.fwerres.molos</groupId>
+			<artifactId>molos-sample-webservice</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
 		</dependency>
 
 		<dependency>
@@ -33,8 +95,13 @@
 			<version>${project.version}</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- 
-		-->
+
+		<!-- Generated WebService for implementation, generated WebService-client for IT -->
+		<dependency>
+			<groupId>com.fwerres.molos</groupId>
+			<artifactId>molos-sample-jaxgen</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 
 		<!-- Provided dependencies -->
 		<dependency>
@@ -147,6 +214,12 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>com.sun.xml.ws</groupId>
+			<artifactId>jaxws-rt</artifactId>
+			<version>4.0.2</version>
+			<scope>test</scope>
+		</dependency>
 		
 		<dependency>
 			<groupId>com.nimbusds</groupId>
@@ -164,38 +237,4 @@
 
 	</dependencies>
 
-	<build>
-		<finalName>${project.artifactId}</finalName>
-		<plugins>
-			<!-- Enable liberty-maven plugin -->
-			<plugin>
-				<groupId>io.openliberty.tools</groupId>
-				<artifactId>liberty-maven-plugin</artifactId>
-				<version>3.9</version>
-				<extensions>true</extensions> <!-- enables packaging 'liberty-assembly' -->
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-war-plugin</artifactId>
-				<version>3.3.2</version>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.0.0</version>
-			</plugin>
-			<!-- Plugin to run functional tests -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-failsafe-plugin</artifactId>
-				<version>3.0.0</version>
-				<configuration>
-					<systemPropertyVariables>
-						<http.port>${liberty.var.default.http.port}</http.port>
-						<context.root>/dev</context.root>
-					</systemPropertyVariables>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
 </project>

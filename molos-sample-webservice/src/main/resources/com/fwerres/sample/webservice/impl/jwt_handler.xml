@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jws:handler-chains xmlns:jws="https://jakarta.ee/xml/ns/jakartaee">
+    <jws:handler-chain>
+        <jws:handler>
+            <jws:handler-class>com.fwerres.sample.webservice.impl.JWTRequiredHandler</jws:handler-class>
+        </jws:handler>
+    </jws:handler-chain>
+</jws:handler-chains>

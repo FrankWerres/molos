@@ -115,6 +115,23 @@ public abstract class IPTestbase {
 		return responseContainsActiveTrue(body);
 	}
 
+	protected boolean validateAccessTokenLocally(String tokenString) throws Exception {
+		SignedJWT jwt = SignedJWT.parse(tokenString);
+		Map<String, Object> tokenValues = JsonHelper.parseJson(jwt.getPayload().toString(), true);
+		for (String tv : tokenValues.keySet()) {
+			System.out.println("IDToken: " + tv + " - " + tokenValues.get(tv));
+		}
+		Issuer iss = new Issuer((String) tokenValues.get("iss"));
+		ClientID clientId = new ClientID((String) tokenValues.get("aud"));
+		IDTokenValidator srvValidator = new IDTokenValidator(iss, clientId, JWSAlgorithm.RS256, new URL(getBaseUrl() + OIDC_JWKS_URI));
+
+		IDTokenClaimsSet claimsSet = srvValidator.validate(jwt, null);
+		
+		System.out.println("claimsSet: " + claimsSet);
+		
+		return true;
+	}
+
 	protected boolean validateIDTokenLocally(String tokenString) throws Exception {
 		SignedJWT jwt = SignedJWT.parse(tokenString);
 		Map<String, Object> tokenValues = JsonHelper.parseJson(jwt.getPayload().toString(), true);
