@@ -18,9 +18,30 @@ public class StartMolos extends AbstractMojo {
 	@Parameter(defaultValue = "${project}")
 	private MavenProject project;
 
+	@Parameter(defaultValue = "molos")
+	private String domain;
+
+	@Parameter(defaultValue = "${project.basedir}/content.molos")
+	private String contentFile;
+
+	@Parameter(defaultValue = "false")
+	private boolean updateFile;
+
+	@Parameter(defaultValue = "false")
+	private boolean skip;
+	
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		getLog().info("molos:start running");
+		getLog().info("molos - My Own Little Oidc Server - start");
+		
+		if (skip) {
+            getLog().info("\nSkipping start goal.\n");
+            return;
+        }
+		
+		getLog().info("domain: " + domain);
+		getLog().info("contentFile: " + contentFile);
+		getLog().info("updateFile: " + updateFile);
 		project.getProperties().setProperty("molos.version", "0.0.1");
 		
 	}

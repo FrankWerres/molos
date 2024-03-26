@@ -255,7 +255,7 @@ public class TestWIthKC extends KCTestbase {
 		
 		Map<String, Object> tokenValues = JsonHelper.parseJson(jwt.getPayload().toString(), true);
 		for (String tv : tokenValues.keySet()) {
-			System.out.println("IDToken: " + tv + " - " + tokenValues.get(tv));
+			System.out.println("ClientSide: AccessToken: " + tv + " - " + tokenValues.get(tv));
 		}
 		
 		Issuer iss = new Issuer((String) tokenValues.get("iss"));
@@ -274,7 +274,7 @@ public class TestWIthKC extends KCTestbase {
 		
 		tokenValues = JsonHelper.parseJson(srvJwt.getPayload().toString(), true);
 		for (String tv : tokenValues.keySet()) {
-			System.out.println("IDToken: " + tv + " - " + tokenValues.get(tv));
+			System.out.println("ServerSide: AccessToken: " + tv + " - " + tokenValues.get(tv));
 		}
 		Issuer srvIss = new Issuer((String) tokenValues.get("iss"));
 		ClientID srvClientId = new ClientID((String) tokenValues.get("aud"));
