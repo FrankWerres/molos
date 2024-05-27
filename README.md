@@ -6,7 +6,7 @@ The approach is to selectively support flows encountered during development of a
 
 ## Currently implemented:
 
-### Client authentication: Verifying a shared secret in order to recognize legitimate clients (clients are software installations, not individuals!)
+### Client authentication: Verifying a secret shared only with the IP in order to recognize legitimate clients (clients are software installations, not individuals!)
 
 *   retrieving an access token for a 'Client Credentials Grant' transferred via ClientCredentialsBasic and its verification on the server side by calling the issuer
 *   retrieving an access token for a 'Client Credentials Grant' transferred via ClientCredentialsPost and its verification on the server side by calling the issuer

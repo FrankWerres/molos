@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>com.fwerres.molos</groupId>
@@ -35,11 +35,21 @@
 						</configuration>
 					</execution>
 					<execution>
+						<id>stop-simple</id>
+						<goals>
+							<goal>stop</goal>
+						</goals>
+						<configuration>
+							<stopAll>true</stopAll>
+						</configuration>
+					</execution>
+					<execution>
 						<id>start-features</id>
 						<goals>
 							<goal>start</goal>
 						</goals>
 						<configuration>
+							<domain>testDomain</domain>
 							<skip>false</skip>
 							<contentFile>testDomain.molos</contentFile>
 							<updateFile>true</updateFile>
