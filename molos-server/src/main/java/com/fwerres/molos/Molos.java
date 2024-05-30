@@ -17,20 +17,16 @@ package com.fwerres.molos;
 
 
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -46,9 +42,13 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import com.fwerres.molos.config.ClientConfig;
+import com.fwerres.molos.config.ClientContainer;
+import com.fwerres.molos.config.SaveLocations;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
+import com.fwerres.molos.config.SaveBehaviour;
 import com.fwerres.molos.config.UserConfig;
+import com.fwerres.molos.config.UserContainer;
 import com.fwerres.molos.data.Token;
 import com.fwerres.molos.data.TokenIntrospection;
 import com.fwerres.molos.setup.KeyGenerator;
@@ -63,13 +63,9 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.SignedJWT;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonValue.ValueType;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 import jakarta.ws.rs.Consumes;
@@ -99,6 +95,10 @@ public class Molos {
 	private final static Map<String, JWK> pubKeys = new HashMap<>();
 	private static JWK signKey;
 	
+	private boolean initialized = false;
+	private SaveLocations configLocation = null;
+	private File configDir = null;
+	
 	@Context
 	private UriInfo uriInfo;
 	
@@ -106,13 +106,19 @@ public class Molos {
 	private final static State molosState = new State();
 	
 	public Molos() {
-		checkConfiguration();
 	}
 	
-	public void checkConfiguration() { 
+	private synchronized void ensureInitialization() {
+		if (!initialized) {
+			checkConfiguration();
+			initialized = true;
+		}
+	}
+	
+	private void checkConfiguration() { 
 		synchronized(Molos.class) {
 			System.err.println("Check environment ...");
-			File confDir = ensureConfigDir();
+			configDir = ensureConfigDir();
 			ensureCertificates();
 		}
 	}
@@ -144,6 +150,8 @@ public class Molos {
 			System.out.println("confDir " + confDir.getAbsolutePath() + " doesn't exist");
 			confDir.mkdirs();
 			System.out.println("confDir " + confDir.getAbsolutePath() + " created");
+		} else {
+			System.out.println("confDir " + confDir.getAbsolutePath());
 		}
 		return confDir;
 	}
@@ -152,7 +160,10 @@ public class Molos {
 	@Path("/.well-known/openid-configuration")
     @Produces({ "application/json" })
     public Response openIdConfiguration() {
-        return Response.ok().entity(new OpenIdConfig(uriInfo.getBaseUri().toString())).build();
+		
+		ensureInitialization();
+        
+		return Response.ok().entity(new OpenIdConfig(uriInfo.getBaseUri().toString())).build();
     }
 	
 	@GET
@@ -165,6 +176,9 @@ public class Molos {
 			@QueryParam("state") String state, 
 			@QueryParam("nonce") String nonce, 
 			@QueryParam("client_id") String client_id) {
+		
+		ensureInitialization();
+		
 		Map<String, String> values = new HashMap<>();
 		
 		parseRequest(request, values);
@@ -206,6 +220,8 @@ public class Molos {
 	@Path("/protocol/openid-connect/login/{uuid}")
 	@Produces({ MediaType.TEXT_HTML })
 	public InputStream doLogin(String request, @PathParam("uuid") String uuid, @Context HttpHeaders headers) {
+		ensureInitialization();
+
 		Map<String, String> values = new HashMap<>();
 		
 		parseRequest(request, headers, values);
@@ -276,6 +292,8 @@ public class Molos {
 	@Path("/protocol/openid-connect/certs")
 	@Produces({ "application/json" })
 	public Response certificates() {
+		ensureInitialization();
+
 		String certs = "{\"keys\":[";
 		String separator = "";
 		for (JWK jwk : pubKeys.values()) {
@@ -290,6 +308,8 @@ public class Molos {
 	@Path("/protocol/openid-connect/token")
     @Produces({ "application/json" })
 	public Response getToken(String request, @Context HttpHeaders headers) {
+		ensureInitialization();
+
 		Map<String, String> values = new HashMap<>();
 		
 		parseRequest(request, headers, values);
@@ -411,6 +431,8 @@ public class Molos {
 	@Path("/protocol/openid-connect/token/introspect")
     @Produces({ "application/json" })
 	public Response introspectToken(String request, @Context HttpHeaders headers) {
+		ensureInitialization();
+
 		Map<String, String> values = new HashMap<>();
 		
 		parseRequest(request, headers, values);
@@ -455,20 +477,78 @@ public class Molos {
 	// mock configuration stuff ...
 	
 	@POST
+	@Path("/mock-setup/saveLocations")
+	@Produces({ "application/json" })
+	public Response mockSetSaveLocations(SaveLocations sl) {
+		ensureInitialization();
+		
+		String inputMsg = "SaveLocations input - configDir: " + sl.getConfigDir() + ", configFile: " + sl.getConfigFile() + ", protocolDir: " + sl.getProtocolDir();
+		System.out.println(inputMsg);
+
+		String resultMsg = "SaveLocations result - configDir: " + sl.getConfigDir() + ", configFile: " + sl.getConfigFile() + ", protocolDir: " + sl.getProtocolDir();
+		
+		this.configLocation = sl;
+		
+		MolosResult result = new MolosResult();
+		
+		this.initialized = false;
+		
+		result.setSuccess(true);
+
+		return Response.ok().entity(result).build();
+	}
+	
+	@POST
+	@Path("/mock-setup/saveBehaviour")
+	@Produces({ "application/json" })
+	public Response mockSetSaveBehaviour(SaveBehaviour sb) {
+		ensureInitialization();
+		
+//		System.out.println("ConfigLocation " + cl.getConfigDir() + ", " + cl.getConfigFile());
+
+		MolosResult result = new MolosResult();
+		
+//		this.configLocation = cl;
+		this.initialized = false;
+		
+		result.setSuccess(true);
+
+		return Response.ok().entity(result).build();
+	}
+	
+	@POST
 	@Path("/mock-setup/clear")
 	@Produces({ "application/json" })
-	public Response clear(String request, @Context HttpHeaders headers) {
+	public Response mockClear(String request, @Context HttpHeaders headers) {
+		ensureInitialization();
+
 		MolosResult result = new MolosResult();
 		result.setSuccess(true);
 		
 		return Response.ok().entity(result).build();
 	}
 	
+	@GET
+	@Path("/mock-setup/clients")
+	@Produces({ "application/json" })
+	public Response mockGetClients() {
+		ensureInitialization();
+
+		ClientContainer clients = new ClientContainer();
+		clients.setClients(molosState.getClients());
+
+		System.out.println("Retrieving clients #" + clients.getClients().size());
+		
+		return Response.ok().entity(clients).build();
+	}
+	
 	@POST
-	@Path("/mock-setup/client")
+	@Path("/mock-setup/clients")
 	@Consumes({ "application/json" })
 	@Produces({ "application/json" })
 	public Response mockSetupClient(ClientConfig cc) {
+		ensureInitialization();
+
 		MolosResult result = new MolosResult();
 
 		System.out.println("Registering #" + cc.getClientId());
@@ -478,11 +558,27 @@ public class Molos {
 		return Response.ok().entity(result).build();
 	}
 	
+	@GET
+	@Path("/mock-setup/users")
+	@Produces({ "application/json" })
+	public Response mockGetUsers() {
+		ensureInitialization();
+
+		UserContainer users = new UserContainer();
+		users.setUsers(molosState.getUsers());
+		
+		System.out.println("Retrieving users #" + users.getUsers().size());
+		
+		return Response.ok().entity(users).build();
+	}
+
 	@POST
-	@Path("/mock-setup/user")
+	@Path("/mock-setup/users")
 	@Consumes({ "application/json" })
 	@Produces({ "application/json" })
 	public Response mockSetupUser(UserConfig uc) {
+		ensureInitialization();
+
 		MolosResult result = new MolosResult();
 
 		System.out.println("Registering #" + uc.getUserName());

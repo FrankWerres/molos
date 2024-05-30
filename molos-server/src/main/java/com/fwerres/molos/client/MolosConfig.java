@@ -15,15 +15,20 @@
  */
 package com.fwerres.molos.client;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import com.fwerres.molos.config.ClientConfig;
+import com.fwerres.molos.config.ClientContainer;
+import com.fwerres.molos.config.SaveLocations;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
 import com.fwerres.molos.config.UserConfig;
+import com.fwerres.molos.config.UserContainer;
 
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
@@ -139,6 +144,29 @@ public class MolosConfig {
 		return client;
 	}
 	
+	public MolosResult configDir(String configDir) {
+		Client client = getRsClient();
+		
+		SaveLocations configLocation = new SaveLocations();
+		configLocation.setConfigDir(configDir);
+		
+		Response response = client.target(url + "/mock-setup/config").request().post(Entity.json(configLocation));
+		
+		MolosResult result = response.readEntity(MolosResult.class);
+		return result;
+	}
+	
+	public MolosResult configFile(String configFile) {
+		Client client = getRsClient();
+		
+		SaveLocations configLocation = new SaveLocations();
+		configLocation.setConfigFile(configFile);
+		
+		Response response = client.target(url + "/mock-setup/config").request().post(Entity.json(configLocation));
+		
+		MolosResult result = response.readEntity(MolosResult.class);
+		return result;
+	}
 
 	public MolosResult clear() {
 		Client client = getRsClient();
@@ -160,17 +188,29 @@ public class MolosConfig {
 	}
 	
 	public List<ClientConfig> getClients() {
-		return Collections.EMPTY_LIST;
+		Client client = getRsClient();
+		
+		Response response = client.target(url + "/mock-setup/clients").request().get();
+		
+		ClientContainer clients = response.readEntity(ClientContainer.class);
+		
+		return clients.getClients();
 	}
 	
 	public List<UserConfig> getUsers() {
-		return Collections.EMPTY_LIST;
+		Client client = getRsClient();
+		
+		Response response = client.target(url + "/mock-setup/users").request().get();
+		
+		UserContainer users = response.readEntity(UserContainer.class);
+		
+		return users.getUsers();
 	}
 
 	private MolosResult addClient(ClientConfig clientConfig) {
 		Client client = getRsClient();
 		
-		Response response = client.target(url + "/mock-setup/client").request().post(Entity.json(clientConfig));
+		Response response = client.target(url + "/mock-setup/clients").request().post(Entity.json(clientConfig));
 		
 		MolosResult result = response.readEntity(MolosResult.class);
 		
@@ -180,7 +220,7 @@ public class MolosConfig {
 	public MolosResult addUser(UserConfig userConfig) {
 		Client client = getRsClient();
 		
-		Response response = client.target(url + "/mock-setup/user").request().post(Entity.json(userConfig));
+		Response response = client.target(url + "/mock-setup/users").request().post(Entity.json(userConfig));
 		
 		MolosResult result = response.readEntity(MolosResult.class);
 		

@@ -16,6 +16,7 @@
 package com.fwerres.molos.setup;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -92,8 +93,16 @@ public class State {
 		return clients.get(clientId);
 	}
 
+	public synchronized Collection<ClientConfig> getClients() {
+		return clients.values();
+	}
+
 	public synchronized UserConfig getUser(String userName) {
 		return users.get(userName);
+	}
+
+	public synchronized Collection<UserConfig> getUsers() {
+		return users.values();
 	}
 	
 	public synchronized void registerToken(Token token) {

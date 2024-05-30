@@ -15,13 +15,14 @@
  */
 package com.fwerres.molos.client;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 
 import org.apache.cxf.endpoint.Server;
+import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,6 @@ import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
 import com.fwerres.molos.config.UserConfig;
 import com.fwerres.testsupport.JaxRSHelper;
-import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 
 public class MolosConfigTest {
 	private static JaxRSHelper jaxrs = new JaxRSHelper();
@@ -86,6 +86,16 @@ public class MolosConfigTest {
 		result = config.client("arbitraryClientId").clientSecret("arbitraryClientSecret").scope("openid").add();
 		
 		assertTrue(result.isSuccess());
+		
+		clients = config.getClients();
+		
+		assertTrue(clients != null && clients.size() == 1);
+		
+		ClientConfig client = clients.get(0);
+		
+		assertEquals("arbitraryClientId", client.getClientId());
+		assertEquals("arbitraryClientSecret", client.getClientSecret());
+		assertEquals("openid", client.getScopes().iterator().next());
 	}
 
 	@Test
@@ -103,6 +113,15 @@ public class MolosConfigTest {
 		result = config.user("theuser").password("arbitraryPassword").add();
 		
 		assertTrue(result.isSuccess());
+		
+		users = config.getUsers();
+
+		assertTrue(users != null && users.size() == 1);
+		
+		UserConfig user = users.get(0);
+		
+		assertEquals("theuser", user.getUserName());
+		assertEquals("arbitraryPassword", user.getPassword());
 	}
 
 }

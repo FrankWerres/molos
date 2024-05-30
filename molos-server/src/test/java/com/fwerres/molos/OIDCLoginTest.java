@@ -200,9 +200,9 @@ public class OIDCLoginTest extends MolosTestbase {
 	    ChromeOptions options = new ChromeOptions();
 	    
 	    // If SeleniumManager needs to use a proxy to reach chrome download
-	    Proxy proxy = new Proxy();
-	    proxy.setHttpProxy("192.168.2.105:3128");
-	    options.setCapability("proxy", proxy);
+//	    Proxy proxy = new Proxy();
+//	    proxy.setHttpProxy("<host>:<port>");
+//	    options.setCapability("proxy", proxy);
 	    
 	    LoggingPreferences logPrefs = new LoggingPreferences();
 	    logPrefs.enable(LogType.PERFORMANCE, Level.ALL);
