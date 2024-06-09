@@ -18,6 +18,12 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+//import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
+
+import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
+import com.fwerres.molos.client.MolosConfig;
+import com.fwerres.molos.config.ClientConfig;
+import com.fwerres.molos.config.MolosResult;
 
 /**
  * Goal which starts a molos server.
@@ -34,14 +40,23 @@ public class StartMolos extends AbstractMojo {
 	@Parameter(defaultValue = "molos")
 	private String domain;
 
-	@Parameter(defaultValue = "${project.basedir}/content.molos")
+	@Parameter()
 	private String contentFile;
+
+	@Parameter()
+	private String protocolDir;
 
 	@Parameter(defaultValue = "false")
 	private boolean updateFile;
 
 	@Parameter(defaultValue = "false")
+	private boolean createProtocol;
+
+	@Parameter(defaultValue = "false")
 	private boolean skip;
+	
+	@Parameter
+	private List<ClientConfig> clients;
 	
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
@@ -53,14 +68,15 @@ public class StartMolos extends AbstractMojo {
         }
 		
 		getLog().info("domain: " + domain);
+		
+		if (contentFile == null || contentFile.isEmpty()) {
+			contentFile = domain + ".realm";
+		}
 
 		if (alreadyRunning()) {
 			getLog().warn("Looks like there's already an molos instance serving the domain " + domain);
 			return;
 		}
-		
-		getLog().info("contentFile: " + contentFile);
-		getLog().info("updateFile: " + updateFile);
 		
 		project.getProperties().setProperty("molos.version", "0.0.1");
 		
@@ -117,6 +133,33 @@ public class StartMolos extends AbstractMojo {
 			}
 		}
 
+		getLog().info("Setting up from plugin configuration ...");
+		
+		getLog().info("contentFile: " + contentFile);
+		getLog().info("updateFile: " + updateFile);
+		getLog().info("createProtocol: " + createProtocol);
+		
+		MolosConfig setup = MolosConfig.getConfigurator(url, new JacksonJsonProvider());
+//		MolosConfig setup = MolosConfig.getConfigurator(url, new JacksonJaxbJsonProvider());
+		MolosResult result = setup.configFile(contentFile);
+		if (protocolDir != null && !protocolDir.isEmpty()) {
+			System.err.println("Calling /mock-setup/saveLocations");
+			result = setup.protocolDir(protocolDir);
+		}
+		if (createProtocol) {
+			System.err.println("Calling setup.startProtocol()");
+			result = setup.startProtocol();
+		}
+		if (clients != null) {
+			for (ClientConfig clientConfig : clients) {
+				System.err.println("Calling setup.client(clientConfig)");
+				result = setup.client(clientConfig);
+			}
+		}
+		
+		System.err.println("Done setting up.");
+		getLog().info("Done setting up.");
+		
 		Properties properties = project.getProperties();
 		String domainPrefix = "molos.domain." + domain;
 		getLog().info("Set " + domainPrefix + ".pid=" + Long.toString(pid));

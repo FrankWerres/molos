@@ -1,12 +1,8 @@
 package org.molos.maven.plugin;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-
 import org.apache.cxf.endpoint.Server;
-import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 
+import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 import com.fwerres.molos.Molos;
 import com.fwerres.testsupport.JaxRSHelper;
 

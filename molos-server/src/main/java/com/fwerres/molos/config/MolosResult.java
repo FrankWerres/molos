@@ -22,6 +22,7 @@ public class MolosResult {
 
 	private boolean success = false;
 	private List<String> messages = new ArrayList<>();
+	private Object entity = null;
 	
 	public boolean isSuccess() {
 		return success;
@@ -37,5 +38,15 @@ public class MolosResult {
 	
 	public void addToMessages(String msg) {
 		messages.add(msg);
+	}
+
+	public Object getEntity() {
+		return entity;
+		
+	}
+
+	public void setEntity(Object entity) {
+		this.entity = entity;
+		
 	}
 }

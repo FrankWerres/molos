@@ -32,6 +32,7 @@
 							<goal>start</goal>
 						</goals>
 						<configuration>
+							<createProtocol>true</createProtocol>
 						</configuration>
 					</execution>
 					<execution>
@@ -53,6 +54,13 @@
 							<skip>false</skip>
 							<contentFile>testDomain.molos</contentFile>
 							<updateFile>true</updateFile>
+							<createProtocol>true</createProtocol>
+							<clients>
+								<client>
+									<clientId>clientId</clientId>
+									<clientSecret>clientSecret</clientSecret>
+								</client>
+							</clients>
 						</configuration>
 					</execution>
 				</executions>

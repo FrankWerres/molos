@@ -19,6 +19,8 @@ package com.fwerres.molos;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -34,6 +36,9 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +71,9 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonValue.ValueType;
+import jakarta.json.JsonWriter;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 import jakarta.ws.rs.Consumes;
@@ -95,17 +103,30 @@ public class Molos {
 	private final static Map<String, JWK> pubKeys = new HashMap<>();
 	private static JWK signKey;
 	
+	private String realm = "molos";
+	
 	private boolean initialized = false;
-	private SaveLocations configLocation = null;
 	private File configDir = null;
+	private File configFile = null;
+	private File protocolDir = null;
+	private SaveBehaviour saveBehaviour = new SaveBehaviour();
 	
 	@Context
 	private UriInfo uriInfo;
 	
 //	@Inject 
 	private final static State molosState = new State();
+
+	private Jsonb jsonb = JsonbBuilder.create();
 	
 	public Molos() {
+		if (uriInfo != null) {
+			String uri = uriInfo.getBaseUri().toString();
+			this.realm = uri.substring(uri.lastIndexOf("/"));
+		} else {
+			this.realm = "molos";
+		}
+		System.err.println("Molos started realm '" + realm + "'");
 	}
 	
 	private synchronized void ensureInitialization() {
@@ -118,7 +139,15 @@ public class Molos {
 	private void checkConfiguration() { 
 		synchronized(Molos.class) {
 			System.err.println("Check environment ...");
-			configDir = ensureConfigDir();
+			if (configDir == null && configFile == null) {
+				configDir = ensureConfigDir();
+				if (protocolDir == null) {
+					protocolDir = configDir;
+				}
+			}
+			if (protocolDir != null) {
+				ensureProtocolDir();
+			}
 			ensureCertificates();
 		}
 	}
@@ -137,6 +166,16 @@ public class Molos {
 			keys.put(kid2, jwk);
 			pubKeys.put(kid2, jwk.toPublicJWK());
 			System.out.println(kid2 + " - " + jwk.toPublicJWK().toJSONString());
+		}
+	}
+
+	private void ensureProtocolDir() {
+		if (!protocolDir.exists()) {
+			System.out.println("protocolDir " + protocolDir.getAbsolutePath() + " doesn't exist");
+			protocolDir.mkdirs();
+			System.out.println("protocolDir " + protocolDir.getAbsolutePath() + " created");
+		} else {
+			System.out.println("protocolDir " + protocolDir.getAbsolutePath());
 		}
 	}
 
@@ -482,40 +521,96 @@ public class Molos {
 	public Response mockSetSaveLocations(SaveLocations sl) {
 		ensureInitialization();
 		
-		String inputMsg = "SaveLocations input - configDir: " + sl.getConfigDir() + ", configFile: " + sl.getConfigFile() + ", protocolDir: " + sl.getProtocolDir();
-		System.out.println(inputMsg);
-
-		String resultMsg = "SaveLocations result - configDir: " + sl.getConfigDir() + ", configFile: " + sl.getConfigFile() + ", protocolDir: " + sl.getProtocolDir();
+		boolean doProtocol = saveBehaviour.isSaveActionProtocol();
 		
-		this.configLocation = sl;
+		if (doProtocol) protocol("mock-setup_saveLocations input", sl);
+
+		applyConfigLocation(sl);
 		
 		MolosResult result = new MolosResult();
 		
-		this.initialized = false;
+		SaveLocations newState = new SaveLocations();
+		if (configDir != null) {
+			newState.setConfigDir(configDir.getAbsolutePath());
+		}
+		if (configFile != null) {
+			newState.setConfigFile(configFile.getAbsolutePath());
+		}
+		if (protocolDir != null) {
+			newState.setProtocolDir(protocolDir.getAbsolutePath());
+		}
+
+		if (doProtocol) protocol("mock-setup_saveLocations result", newState);
+
+		String resultMsg = "mock-setup_saveLocations result - " + jsonb.toJson(newState);
 		
 		result.setSuccess(true);
+		result.addToMessages(resultMsg);
+		result.setEntity(newState);
 
 		return Response.ok().entity(result).build();
 	}
 	
+	private void applyConfigLocation(SaveLocations sl) {
+		if (sl.getConfigDir() != null && !sl.getConfigDir().isEmpty()) {
+			configDir = new File(sl.getConfigDir());
+			this.initialized = false;
+		}
+		if (sl.getConfigFile() != null && !sl.getConfigFile().isEmpty()) {
+			configFile = new File(sl.getConfigFile());
+			this.initialized = false;
+		} else {
+			configFile = new File(configDir, realm + ".realm");
+		}
+		if (sl.getProtocolDir() != null && !sl.getProtocolDir().isEmpty()) {
+			protocolDir = new File(sl.getProtocolDir());
+			this.initialized = false;
+		} else {
+			protocolDir = configDir;
+		}
+	}
+
 	@POST
 	@Path("/mock-setup/saveBehaviour")
 	@Produces({ "application/json" })
 	public Response mockSetSaveBehaviour(SaveBehaviour sb) {
 		ensureInitialization();
 		
-//		System.out.println("ConfigLocation " + cl.getConfigDir() + ", " + cl.getConfigFile());
-
-		MolosResult result = new MolosResult();
+		boolean doProtocol = saveBehaviour.isSaveActionProtocol();
 		
-//		this.configLocation = cl;
-		this.initialized = false;
+		if (doProtocol) protocol("mock-setup_saveBehaviour input", sb);
+		
+		MolosResult result = new MolosResult();
+
+		saveBehaviour.setSaveActionProtocol(sb.isSaveActionProtocol());
+		saveBehaviour.setSaveConfigHistory(sb.isSaveConfigHistory());
+		saveBehaviour.setSaveConfigOnChange(sb.isSaveConfigOnChange());
+
+		if (doProtocol) protocol("mock-setup_saveBehaviour result", saveBehaviour);
+
+		String resultMsg = "mock-setup_saveBehaviour result - " + jsonb.toJson(saveBehaviour);
 		
 		result.setSuccess(true);
+		result.addToMessages(resultMsg);
+		result.setEntity(saveBehaviour);
 
 		return Response.ok().entity(result).build();
 	}
 	
+	private void protocol(String string, Object sb) {
+		if (saveBehaviour.isSaveActionProtocol()) {
+			String filename = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + "_" + string + ".json";
+			filename = filename.replace(":", "");
+			File f = new File(protocolDir, filename);
+			System.out.println("Writing to " + f.getAbsolutePath());
+			try (FileOutputStream os = new FileOutputStream(f)) {
+				jsonb.toJson(sb, os);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
 	@POST
 	@Path("/mock-setup/clear")
 	@Produces({ "application/json" })

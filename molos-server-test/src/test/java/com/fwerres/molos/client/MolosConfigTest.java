@@ -22,11 +22,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import org.apache.cxf.endpoint.Server;
-import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 import com.fwerres.molos.Molos;
 import com.fwerres.molos.config.ClientConfig;
 import com.fwerres.molos.config.MolosResult;
@@ -44,7 +44,7 @@ public class MolosConfigTest {
 	@BeforeAll
 	public static void setUp() throws Exception {
 		if (theServer == null) {
-			theServer = jaxrs.createLocalCXFServer("/oidcMock", Molos.class, new JacksonJsonProvider(), new Object[] { });
+			theServer = jaxrs.createLocalCXFServer("/oidcMock", Molos.class, new com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider(), new Object[] { });
 			wsUrl = jaxrs.getActualUrl(theServer);
 			System.out.println("Started server on " + wsUrl);
 		}
@@ -60,7 +60,7 @@ public class MolosConfigTest {
 
 	@Test
 	public void testConfig() {
-		MolosConfig setup = MolosConfig.getConfigurator(wsUrl);
+		MolosConfig setup = MolosConfig.getConfigurator(wsUrl, new JacksonJsonProvider());
 		
 		OpenIdConfig config = setup.getOIDCConfig();
 		
@@ -73,7 +73,7 @@ public class MolosConfigTest {
 
 	@Test
 	public void testClient() {
-		MolosConfig config = MolosConfig.getConfigurator(wsUrl);
+		MolosConfig config = MolosConfig.getConfigurator(wsUrl, new JacksonJsonProvider());
 		
 		MolosResult result = config.clear();
 		
@@ -100,7 +100,7 @@ public class MolosConfigTest {
 
 	@Test
 	public void testUser() {
-		MolosConfig config = MolosConfig.getConfigurator(wsUrl);
+		MolosConfig config = MolosConfig.getConfigurator(wsUrl, new JacksonJsonProvider());
 		
 		MolosResult result = config.clear();
 		
@@ -126,7 +126,7 @@ public class MolosConfigTest {
 
 	@Test
 	public void testConfigDir() {
-		MolosConfig config = MolosConfig.getConfigurator(wsUrl);
+		MolosConfig config = MolosConfig.getConfigurator(wsUrl, new JacksonJsonProvider());
 		
 		MolosResult result = config.clear();
 		
@@ -138,12 +138,12 @@ public class MolosConfigTest {
 
 		String msg = result.getMessages().get(0);
 		
-		assertEquals("mock-setup_saveLocations result - {\"configDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server\\\\configDir\",\"configFile\":\"W:\\\\git\\\\molosRepo\\\\molos-server\\\\configDir\\\\molos.realm\",\"protocolDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server\\\\configDir\"}", msg);
+		assertEquals("mock-setup_saveLocations result - {\"configDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\configDir\",\"configFile\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\configDir\\\\molos.realm\",\"protocolDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\configDir\"}", msg);
 	}
 
 	@Test
 	public void testConfigFile() {
-		MolosConfig config = MolosConfig.getConfigurator(wsUrl, new JacksonJsonProvider());
+		MolosConfig config = MolosConfig.getConfigurator(wsUrl, new JacksonJsonProvider());//, new JacksonJaxbJsonProvider());
 		
 		MolosResult result = config.clear();
 		
@@ -157,12 +157,12 @@ public class MolosConfigTest {
 
 		String msg = result.getMessages().get(0);
 		
-		assertEquals("mock-setup_saveLocations result - {\"configDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server\\\\.\\\\.molos\",\"configFile\":\"W:\\\\git\\\\molosRepo\\\\molos-server\\\\configFile\",\"protocolDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server\\\\.\\\\.molos\"}", msg);
+		assertEquals("mock-setup_saveLocations result - {\"configDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\.\\\\.molos\",\"configFile\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\configFile\",\"protocolDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\.\\\\.molos\"}", msg);
 	}
 
 	@Test
 	public void testProtocolDir() {
-		MolosConfig config = MolosConfig.getConfigurator(wsUrl);
+		MolosConfig config = MolosConfig.getConfigurator(wsUrl, new JacksonJsonProvider());
 		
 		MolosResult result = config.clear();
 		
@@ -176,7 +176,7 @@ public class MolosConfigTest {
 
 		String msg = result.getMessages().get(0);
 		
-		assertEquals("mock-setup_saveLocations result - {\"configDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server\\\\.\\\\.molos\",\"configFile\":\"W:\\\\git\\\\molosRepo\\\\molos-server\\\\.\\\\.molos\\\\molos.realm\",\"protocolDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server\\\\protocolDir\"}", msg);
+		assertEquals("mock-setup_saveLocations result - {\"configDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\.\\\\.molos\",\"configFile\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\.\\\\.molos\\\\molos.realm\",\"protocolDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\protocolDir\"}", msg);
 	}
 
 }

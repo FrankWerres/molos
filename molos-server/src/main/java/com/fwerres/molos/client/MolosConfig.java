@@ -27,6 +27,7 @@ import com.fwerres.molos.config.ClientContainer;
 import com.fwerres.molos.config.SaveLocations;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
+import com.fwerres.molos.config.SaveBehaviour;
 import com.fwerres.molos.config.UserConfig;
 import com.fwerres.molos.config.UserContainer;
 
@@ -71,7 +72,7 @@ public class MolosConfig {
 			cc.setClientId(clientId);
 			cc.setClientSecret(clientSecret);
 			cc.setScopes(scopes);
-			return mc.addClient(cc);
+			return mc.client(cc);
 		}
 		
 		public void remove() {
@@ -150,21 +151,56 @@ public class MolosConfig {
 		SaveLocations configLocation = new SaveLocations();
 		configLocation.setConfigDir(configDir);
 		
-		Response response = client.target(url + "/mock-setup/config").request().post(Entity.json(configLocation));
+		Response response = client.target(url + "/mock-setup/saveLocations").request().post(Entity.json(configLocation));
 		
 		MolosResult result = response.readEntity(MolosResult.class);
 		return result;
 	}
+	
+	public MolosResult protocolDir(String protocolDir) {
+		Client client = getRsClient();
+		
+		SaveLocations configLocation = new SaveLocations();
+		configLocation.setProtocolDir(protocolDir);
+		
+		Response response = client.target(url + "/mock-setup/saveLocations").request().post(Entity.json(configLocation));
+		
+		MolosResult result = response.readEntity(MolosResult.class);
+		return result;
+	}
+	
+	public MolosResult startProtocol() {
+		return setProtocol(true);
+	}
+	
+	public MolosResult stopProtocol() {
+		return setProtocol(false);
+	}
+	
+	private MolosResult setProtocol(boolean state) {
+		Client client = getRsClient();
+		
+		SaveBehaviour saveBehaviour = new SaveBehaviour();
+		saveBehaviour.setSaveActionProtocol(state);
+		
+		Response response = client.target(url + "/mock-setup/saveBehaviour").request().post(Entity.json(saveBehaviour));
+		
+		MolosResult result = response.readEntity(MolosResult.class);
+		return result;
+	}
+	
 	
 	public MolosResult configFile(String configFile) {
 		Client client = getRsClient();
 		
 		SaveLocations configLocation = new SaveLocations();
 		configLocation.setConfigFile(configFile);
-		
-		Response response = client.target(url + "/mock-setup/config").request().post(Entity.json(configLocation));
-		
+		System.err.println("Calling /mock-setup/saveLocations");
+		Response response = client.target(url + "/mock-setup/saveLocations").request().post(Entity.json(configLocation));
+		System.err.println("returned /mock-setup/saveLocations");
+
 		MolosResult result = response.readEntity(MolosResult.class);
+		System.err.println("returned result");
 		return result;
 	}
 
@@ -207,7 +243,7 @@ public class MolosConfig {
 		return users.getUsers();
 	}
 
-	private MolosResult addClient(ClientConfig clientConfig) {
+	public MolosResult client(ClientConfig clientConfig) {
 		Client client = getRsClient();
 		
 		Response response = client.target(url + "/mock-setup/clients").request().post(Entity.json(clientConfig));
