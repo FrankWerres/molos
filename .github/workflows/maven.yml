@@ -29,6 +29,8 @@ jobs:
         cache: maven
     - name: Install Google Chrome 
       uses: browser-actions/setup-chrome@v1
+      with: 
+        install-chromedriver: true
     - name: Check Chrome version   
       run: chrome --version
     - name: Build with Maven
