@@ -30,7 +30,7 @@ jobs:
     - name: Install Google Chrome 
       uses: browser-actions/setup-chrome@v1
       with: 
-        chrome-version: 128
+        chrome-version: 125
         install-chromedriver: true
     - name: Check Chrome version   
       run: chrome --version
