@@ -31,7 +31,6 @@ jobs:
       uses: browser-actions/setup-chrome@v1
       with: 
         chrome-version: 125
-        install-chromedriver: true
     - name: Check Chrome version   
       run: chrome --version
     - name: Build with Maven
