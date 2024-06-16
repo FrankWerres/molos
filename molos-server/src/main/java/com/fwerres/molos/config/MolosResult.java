@@ -18,11 +18,16 @@ package com.fwerres.molos.config;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+
 public class MolosResult {
 
+	private static Jsonb jsonb = JsonbBuilder.create();
+	
 	private boolean success = false;
 	private List<String> messages = new ArrayList<>();
-	private Object entity = null;
+	private String entity = null;
 	
 	public boolean isSuccess() {
 		return success;
@@ -40,13 +45,25 @@ public class MolosResult {
 		messages.add(msg);
 	}
 
-	public Object getEntity() {
+	public String getEntity() {
 		return entity;
+	}
+
+	public <T> T getResultObject(Class<T> clazz) {
+		if (entity == null || entity.isEmpty()) {
+			return null;
+		}
+		return jsonb.fromJson(entity, clazz);
 		
 	}
 
-	public void setEntity(Object entity) {
+	public void setEntity(String entity) {
 		this.entity = entity;
+		
+	}
+
+	public void setResultObject(Object entity) {
+		this.entity = jsonb.toJson(entity);
 		
 	}
 }

@@ -17,7 +17,6 @@ package com.fwerres.molos;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -46,7 +45,7 @@ public class MolosMockTest {
 		assertTrue(result.isSuccess());
 		
 		System.out.println(result.getMessages().get(0));
-		sl = (SaveLocations) result.getEntity();
+		sl = result.getResultObject(SaveLocations.class);
 		
 		String expectedPath = "./.molos";
 		String expectedFile = "./.molos/molos.realm";
@@ -68,7 +67,7 @@ public class MolosMockTest {
 		MolosResult result = extractResultEntity(response, MolosResult.class);
 		assertTrue(result.isSuccess());
 		System.out.println(result.getMessages().get(0));
-		sb = (SaveBehaviour) result.getEntity();
+		sb = result.getResultObject(SaveBehaviour.class);
 		assertFalse(sb.isSaveActionProtocol());
 		assertFalse(sb.isSaveConfigHistory());
 		assertFalse(sb.isSaveConfigOnChange());
@@ -78,7 +77,7 @@ public class MolosMockTest {
 		result = extractResultEntity(response, MolosResult.class);
 		assertTrue(result.isSuccess());
 		System.out.println(result.getMessages().get(0));
-		sb = (SaveBehaviour) result.getEntity();
+		sb = result.getResultObject(SaveBehaviour.class);
 		assertTrue(sb.isSaveActionProtocol());
 		assertFalse(sb.isSaveConfigHistory());
 		assertFalse(sb.isSaveConfigOnChange());
@@ -89,7 +88,7 @@ public class MolosMockTest {
 		result = extractResultEntity(response, MolosResult.class);
 		assertTrue(result.isSuccess());
 		System.out.println(result.getMessages().get(0));
-		sb = (SaveBehaviour) result.getEntity();
+		sb = result.getResultObject(SaveBehaviour.class);
 		assertFalse(sb.isSaveActionProtocol());
 		assertTrue(sb.isSaveConfigHistory());
 		assertFalse(sb.isSaveConfigOnChange());
@@ -100,7 +99,7 @@ public class MolosMockTest {
 		result = extractResultEntity(response, MolosResult.class);
 		assertTrue(result.isSuccess());
 		System.out.println(result.getMessages().get(0));
-		sb = (SaveBehaviour) result.getEntity();
+		sb = result.getResultObject(SaveBehaviour.class);
 		assertFalse(sb.isSaveActionProtocol());
 		assertFalse(sb.isSaveConfigHistory());
 		assertTrue(sb.isSaveConfigOnChange());
@@ -120,7 +119,7 @@ public class MolosMockTest {
 		MolosResult result = extractResultEntity(response, MolosResult.class);
 		assertTrue(result.isSuccess());
 		System.out.println(result.getMessages().get(0));
-		sl = (SaveLocations) result.getEntity();
+		sl = result.getResultObject(SaveLocations.class);
 		
 		System.out.println("Location " + d.getAbsolutePath());
 		assertEquals(d.getAbsolutePath(), sl.getConfigDir());

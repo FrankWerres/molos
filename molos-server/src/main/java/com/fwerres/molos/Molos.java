@@ -546,7 +546,7 @@ public class Molos {
 		
 		result.setSuccess(true);
 		result.addToMessages(resultMsg);
-		result.setEntity(newState);
+		result.setResultObject(newState);
 
 		return Response.ok().entity(result).build();
 	}
@@ -592,7 +592,7 @@ public class Molos {
 		
 		result.setSuccess(true);
 		result.addToMessages(resultMsg);
-		result.setEntity(saveBehaviour);
+		result.setResultObject(saveBehaviour);
 
 		return Response.ok().entity(result).build();
 	}
@@ -649,6 +649,7 @@ public class Molos {
 		System.out.println("Registering #" + cc.getClientId());
 		
 		result.setSuccess(molosState.registerClient(cc, result.getMessages()));
+		result.setResultObject(cc);
 		
 		return Response.ok().entity(result).build();
 	}
