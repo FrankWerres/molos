@@ -210,6 +210,13 @@ public class OIDCLoginTest extends MolosTestbase {
 	    } else {
 	    	System.err.println("CHROME_PATH not set");
 	    }
+	    property = System.getenv("CHROME_PATH");
+	    if (property != null) {
+	    	System.err.println("Property " + property);
+	    	options.setBinary(property);
+	    } else {
+	    	System.err.println("CHROME_PATH not set");
+	    }
 	    
 	    WebDriver driver = new ChromeDriver(options);
 		
