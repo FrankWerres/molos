@@ -36,7 +36,7 @@ jobs:
     - name: Check Chrome version   
       run: chrome --version
     - name: Check version
-    - run: |
+      run: |
         ${{ steps.setup-chrome.outputs.chrome-path }} --version
     - name: Build with Maven
       run: mvn -B package --file pom.xml
