@@ -203,11 +203,12 @@ public class OIDCLoginTest extends MolosTestbase {
 	    options.setCapability(ChromeOptions.LOGGING_PREFS, logPrefs);	  
 	    
 	    options.addArguments("--remote-debugging-pipe");
-	    String property = System.getProperty("steps.setup-chrome.outputs.chrome-path");
+	    String property = System.getProperty("CHROME_PATH");
 	    if (property != null) {
 	    	System.err.println("Property " + property);
+	    	options.setBinary(property);
 	    } else {
-	    	System.err.println("steps.setup-chrome.outputs.chrome-path not set");
+	    	System.err.println("CHROME_PATH not set");
 	    }
 	    
 	    WebDriver driver = new ChromeDriver(options);
