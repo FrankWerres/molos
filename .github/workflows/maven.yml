@@ -39,6 +39,8 @@ jobs:
       run: |
         ${{ steps.setup-chrome.outputs.chrome-path }} --version
     - name: Build with Maven
+      env:
+        steps.setup-chrome.outputs.chrome-path: ${{ steps.setup-chrome.outputs.chrome-path }}
       run: mvn -B package --file pom.xml
 
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
