@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.By;
-import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -45,7 +44,6 @@ import org.openqa.selenium.logging.LogEntries;
 import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
-import org.openqa.selenium.remote.CapabilityType;
 
 import com.fwerres.testsupport.JsonHelper;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -75,14 +73,10 @@ import com.sun.net.httpserver.spi.HttpServerProvider;
 
 import jakarta.json.Json;
 import jakarta.json.JsonNumber;
-import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonString;
 import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
-import jakarta.json.stream.JsonParser;
-import jakarta.json.stream.JsonParserFactory;
-import jakarta.json.stream.JsonParser.Event;
 
 /**
  * This class tests molos handling of OIDC-like client authentication flows. 
@@ -207,6 +201,8 @@ public class OIDCLoginTest extends MolosTestbase {
 	    LoggingPreferences logPrefs = new LoggingPreferences();
 	    logPrefs.enable(LogType.PERFORMANCE, Level.ALL);
 	    options.setCapability(ChromeOptions.LOGGING_PREFS, logPrefs);	  
+	    
+	    options.addArguments("--remote-debugging-pipe");
 	    
 	    WebDriver driver = new ChromeDriver(options);
 		
