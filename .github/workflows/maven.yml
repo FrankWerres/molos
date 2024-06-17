@@ -31,9 +31,7 @@ jobs:
       uses: browser-actions/setup-chrome@v1
       with: 
         chrome-version: 125
-    - name: Check Google Chrome path 
-      run: |
-        ${{ steps.setup-chrome.outputs.chrome-path }} --version
+        install-chromedriver: true
     - name: Check Chrome version   
       run: chrome --version
     - name: Build with Maven
