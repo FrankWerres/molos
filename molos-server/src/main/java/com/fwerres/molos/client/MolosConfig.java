@@ -238,9 +238,11 @@ public class MolosConfig {
 		
 		Response response = client.target(url + "/mock-setup/users").request().get();
 		
-		UserContainer users = response.readEntity(UserContainer.class);
+		String json = response.readEntity(String.class);
+		System.out.println("Retrieving users: " + json);
+//		UserContainer users = response.readEntity(UserContainer.class);
 		
-		return users.getUsers();
+		return Collections.emptyList();// users.getUsers();
 	}
 
 	public MolosResult client(ClientConfig clientConfig) {
