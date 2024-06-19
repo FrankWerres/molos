@@ -202,21 +202,21 @@ public class OIDCLoginTest extends MolosTestbase {
 	    logPrefs.enable(LogType.PERFORMANCE, Level.ALL);
 	    options.setCapability(ChromeOptions.LOGGING_PREFS, logPrefs);	  
 	    
-	    String property = System.getProperty("CHROME_PATH");
-	    if (property != null) {
-	    	System.err.println("Property " + property);
-	    	options.setBinary(property);
-	    } else {
-	    	System.err.println("CHROME_PATH not set");
-	    }
-	    property = System.getenv("CHROME_PATH");
-	    if (property != null) {
-	    	System.err.println("Property " + property);
-	    	options.setBinary(property);
-	    } else {
-	    	System.err.println("CHROME_PATH not set");
-	    }
-	    property = System.getenv("GITHUB_RUN_ID");
+//	    String property = System.getProperty("CHROME_PATH");
+//	    if (property != null) {
+//	    	System.err.println("Property " + property);
+//	    	options.setBinary(property);
+//	    } else {
+//	    	System.err.println("CHROME_PATH not set");
+//	    }
+//	    property = System.getenv("CHROME_PATH");
+//	    if (property != null) {
+//	    	System.err.println("Property " + property);
+//	    	options.setBinary(property);
+//	    } else {
+//	    	System.err.println("CHROME_PATH not set");
+//	    }
+	    String property = System.getenv("GITHUB_RUN_ID");
 	    if (property != null) {
 	    	System.err.println("GITHUB_RUN_ID " + property);
 	    	options.addArguments("--headless");
