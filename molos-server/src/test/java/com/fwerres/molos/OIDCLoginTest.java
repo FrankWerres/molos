@@ -202,7 +202,6 @@ public class OIDCLoginTest extends MolosTestbase {
 	    logPrefs.enable(LogType.PERFORMANCE, Level.ALL);
 	    options.setCapability(ChromeOptions.LOGGING_PREFS, logPrefs);	  
 	    
-	    options.addArguments("--remote-debugging-pipe");
 	    String property = System.getProperty("CHROME_PATH");
 	    if (property != null) {
 	    	System.err.println("Property " + property);
@@ -216,6 +215,13 @@ public class OIDCLoginTest extends MolosTestbase {
 	    	options.setBinary(property);
 	    } else {
 	    	System.err.println("CHROME_PATH not set");
+	    }
+	    property = System.getenv("GITHUB_RUN_ID");
+	    if (property != null) {
+	    	System.err.println("GITHUB_RUN_ID " + property);
+	    	options.addArguments("--headless");
+	    } else {
+	    	System.err.println("GITHUB_RUN_ID not set");
 	    }
 	    
 	    WebDriver driver = new ChromeDriver(options);
