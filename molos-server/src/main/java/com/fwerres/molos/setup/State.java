@@ -40,6 +40,14 @@ public class State {
 	private final Set<String> tokens = new HashSet<>();
 	private final Map<String, Map<String, String>> attic = new HashMap<>();
 	private final Map<String, Map<String, String>> codes = new HashMap<>();
+	
+	public synchronized void clear() {
+		clients.clear();
+		users.clear();
+		tokens.clear();
+		attic.clear();
+		codes.clear();
+	}
 
 	public synchronized boolean registerClient(ClientConfig cc, List<String> msgs) {
 		boolean failed = false;

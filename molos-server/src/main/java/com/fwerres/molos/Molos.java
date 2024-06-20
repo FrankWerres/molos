@@ -617,6 +617,8 @@ public class Molos {
 	public Response mockClear(String request, @Context HttpHeaders headers) {
 		ensureInitialization();
 
+		molosState.clear();
+		
 		MolosResult result = new MolosResult();
 		result.setSuccess(true);
 		
