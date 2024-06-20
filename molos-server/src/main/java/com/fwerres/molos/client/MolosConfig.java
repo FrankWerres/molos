@@ -31,6 +31,8 @@ import com.fwerres.molos.config.SaveBehaviour;
 import com.fwerres.molos.config.UserConfig;
 import com.fwerres.molos.config.UserContainer;
 
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.spi.JsonbProvider;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
@@ -123,6 +125,7 @@ public class MolosConfig {
 	
 	private final String url;
 	private final Object provider;
+	private Jsonb jsonb = JsonbProvider.provider().create().build();
 	
 	private MolosConfig(String url, Object provider) {
 		this.url = url;
@@ -228,8 +231,12 @@ public class MolosConfig {
 		
 		Response response = client.target(url + "/mock-setup/clients").request().get();
 		
-		ClientContainer clients = response.readEntity(ClientContainer.class);
-		
+//		ClientContainer clients = response.readEntity(ClientContainer.class);
+
+		String json = response.readEntity(String.class);
+		System.out.println("Retrieving clients: " + json);
+		ClientContainer clients = jsonb.fromJson(json, ClientContainer.class);
+
 		return clients.getClients();
 	}
 	
@@ -240,9 +247,10 @@ public class MolosConfig {
 		
 		String json = response.readEntity(String.class);
 		System.out.println("Retrieving users: " + json);
-//		UserContainer users = response.readEntity(UserContainer.class);
+		//		UserContainer users = response.readEntity(UserContainer.class);
+		UserContainer users = jsonb.fromJson(json, UserContainer.class);
 		
-		return Collections.emptyList();// users.getUsers();
+		return users.getUsers();
 	}
 
 	public MolosResult client(ClientConfig clientConfig) {
