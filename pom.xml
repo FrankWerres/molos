@@ -43,9 +43,22 @@
 		<module>molos-sample-jaxgen</module>
 		<module>molos-sample-webservice</module>
 		<module>molos-maven-plugin</module>
-		<module>molos-plugin-test</module>
 		<module>molos-server-test</module>
 	</modules>
+	
+	<profiles>
+		<profile>
+			<id>local_withPluginTest</id>
+			<activation>
+				<property>
+					<name>!env.GITHUB_RUN_ID</name>
+				</property>
+			</activation>
+			<modules>
+				<module>molos-plugin-test</module>
+			</modules>
+		</profile>
+	</profiles>
 
 	<dependencyManagement>
 

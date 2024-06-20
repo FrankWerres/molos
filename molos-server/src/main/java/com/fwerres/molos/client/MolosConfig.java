@@ -125,7 +125,6 @@ public class MolosConfig {
 	
 	private final String url;
 	private final Object provider;
-//	private Jsonb jsonb = JsonbProvider.provider().create().build();
 	
 	private MolosConfig(String url, Object provider) {
 		this.url = url;
@@ -233,10 +232,6 @@ public class MolosConfig {
 		
 		ClientContainer clients = response.readEntity(ClientContainer.class);
 
-//		String json = response.readEntity(String.class);
-//		System.out.println("Retrieving clients: " + json);
-//		ClientContainer clients = jsonb.fromJson(json, ClientContainer.class);
-
 		return clients.getClients();
 	}
 	
@@ -245,10 +240,7 @@ public class MolosConfig {
 		
 		Response response = client.target(url + "/mock-setup/users").request().get();
 		
-//		String json = response.readEntity(String.class);
-//		System.out.println("Retrieving users: " + json);
 		UserContainer users = response.readEntity(UserContainer.class);
-//		UserContainer users = jsonb.fromJson(json, UserContainer.class);
 		
 		return users.getUsers();
 	}
