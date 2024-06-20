@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.util.List;
 
 import org.apache.cxf.endpoint.Server;
@@ -31,6 +32,7 @@ import com.fwerres.molos.Molos;
 import com.fwerres.molos.config.ClientConfig;
 import com.fwerres.molos.config.MolosResult;
 import com.fwerres.molos.config.OpenIdConfig;
+import com.fwerres.molos.config.SaveLocations;
 import com.fwerres.molos.config.UserConfig;
 import com.fwerres.testsupport.JaxRSHelper;
 
@@ -137,8 +139,16 @@ public class MolosConfigTest {
 		assertTrue(result.isSuccess());
 
 		String msg = result.getMessages().get(0);
+		assertTrue(msg.startsWith("mock-setup_saveLocations result - "));
 		
-		assertEquals("mock-setup_saveLocations result - {\"configDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\configDir\",\"configFile\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\configDir\\\\molos.realm\",\"protocolDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\configDir\"}", msg);
+		File d = new File("configDir");
+		File f = new File(d, "molos.realm");
+		
+		SaveLocations sl = result.getResultObject(SaveLocations.class);
+
+		assertEquals(d.getAbsolutePath(), sl.getConfigDir());
+		assertEquals(f.getAbsolutePath(), sl.getConfigFile());
+		assertEquals(d.getAbsolutePath(), sl.getProtocolDir());
 	}
 
 	@Test
@@ -152,12 +162,18 @@ public class MolosConfigTest {
 		result = config.configFile("configFile");
 		
 		assertTrue(result.isSuccess());
-		
-		System.out.println(result.getMessages().get(0));
 
 		String msg = result.getMessages().get(0);
+		assertTrue(msg.startsWith("mock-setup_saveLocations result - "));
 		
-		assertEquals("mock-setup_saveLocations result - {\"configDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\.\\\\.molos\",\"configFile\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\configFile\",\"protocolDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\.\\\\.molos\"}", msg);
+		File d = new File("./.molos");
+		File f = new File("configFile");
+		
+		SaveLocations sl = result.getResultObject(SaveLocations.class);
+
+		assertEquals(d.getAbsolutePath(), sl.getConfigDir());
+		assertEquals(f.getAbsolutePath(), sl.getConfigFile());
+		assertEquals(d.getAbsolutePath(), sl.getProtocolDir());
 	}
 
 	@Test
@@ -172,11 +188,18 @@ public class MolosConfigTest {
 		
 		assertTrue(result.isSuccess());
 
-		System.out.println(result.getMessages().get(0));
-
 		String msg = result.getMessages().get(0);
+		assertTrue(msg.startsWith("mock-setup_saveLocations result - "));
 		
-		assertEquals("mock-setup_saveLocations result - {\"configDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\.\\\\.molos\",\"configFile\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\.\\\\.molos\\\\molos.realm\",\"protocolDir\":\"W:\\\\git\\\\molosRepo\\\\molos-server-test\\\\protocolDir\"}", msg);
+		File d = new File("./.molos");
+		File f = new File(d, "molos.realm");
+		File p = new File("protocolDir");
+		
+		SaveLocations sl = result.getResultObject(SaveLocations.class);
+
+		assertEquals(d.getAbsolutePath(), sl.getConfigDir());
+		assertEquals(f.getAbsolutePath(), sl.getConfigFile());
+		assertEquals(p.getAbsolutePath(), sl.getProtocolDir());
 	}
 
 }
